@@ -3,32 +3,16 @@ import {View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Pressable, Al
 import {Camera, CameraView, CameraViewRef, useCameraPermissions} from 'expo-camera';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {CameraType} from "expo-camera/legacy";
+import {useRouter} from "expo-router";
 
 
-const initialData = [
-    { id: '1', user: 'Alicee', image: require('@/assets/images/react-logo.png') },
-    { id: '2', user: 'Bob', image: require('@/assets/images/partial-react-logo.png') },
-    { id: '3', user: 'Cintia', image: require('@/assets/images/icon.png') },
-    // Add more sample posts here
-];
-interface FeedItem {
-    id: string;
-    user: string;
-    image: any;
-}
 
-const Post = ({ user, image }:FeedItem) => (
-    <View style={styles.post}>
-        <Text style={styles.postUser}>{user}</Text>
-        <Image source={typeof image === 'string' ? { uri: image } : image} style={styles.postImage} />
-    </View>
-);
-
-export default function HomeScreen() {
+export default function CameraScreen() {
     const [facing, setFacing] = useState(CameraType.front);
     const [permission, requestPermission] = useCameraPermissions();
-    const [feed, setFeed] = useState<FeedItem[]>(initialData);
+    //const [feed, setFeed] = useState<FeedItem[]>(initialData);
     const cameraRef = useRef<CameraView | null>(null);
+    const router = useRouter();
 
 
     useEffect(() => {
@@ -36,13 +20,16 @@ export default function HomeScreen() {
             requestPermission();
         })();
     }, []);
-
+    const switchToCameraScreen = () => {
+        //route to / camera
+        router.push('/camera');
+    }
     const takePicture = async () => {
         if (cameraRef.current) {
             const photo = await cameraRef.current.takePictureAsync({base64: true});
             if (photo &&  photo.uri) {
-                const updatedFeed = feed.map(item => ({ ...item, image: photo.uri }));
-                setFeed(updatedFeed);
+                /*const updatedFeed = feed.map(item => ({ ...item, image: photo.uri }));
+                setFeed(updatedFeed);*/
             }
             //wait 3 sec
             /*setCameraType('front')*/
@@ -60,22 +47,16 @@ export default function HomeScreen() {
             <View style={styles.header}>
                 <Text style={styles.headerText}>BeReal</Text>
             </View>
-                <CameraView
-                    facing={facing}
-                    ref={cameraRef}
-                >
-                    <View style={styles.cameraView}>
-                        <Pressable style={styles.captureButton} onPress={()=>takePicture()}>
-                            <Ionicons name={"camera"} style={styles.cameraIcon}/>
-                        </Pressable>
-                    </View>
-                </CameraView>
-            <FlatList
-                data={feed}
-                renderItem={({ item }) => <Post id={item.id} user={item.user} image={item.image/* ONLY WORKS AFTER FIRST PIC TAKEN item.image*/} />}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.feed}
-            />
+            <CameraView
+                facing={facing}
+                ref={cameraRef}
+            >
+                <View style={styles.cameraView}>
+                    <Pressable style={styles.captureButton} onPress={()=>switchToCameraScreen()}>
+                        <Ionicons name={"camera"} style={styles.cameraIcon}/>
+                    </Pressable>
+                </View>
+            </CameraView>
         </View>
     );
 }
