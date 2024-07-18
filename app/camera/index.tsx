@@ -34,7 +34,9 @@ export default function CameraScreen() {
 
     const takePicture = async () => {
         if (cameraRef.current) {
-            const photo = await cameraRef.current.takePictureAsync({ base64: true,isImageMirror: false,
+            const photo = await cameraRef.current.takePictureAsync({
+                quality: 1,
+                base64: true,
             });
             if (photo && photo.uri) {
                 setCapturedPhoto(photo.uri);
@@ -71,28 +73,36 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#000000',
     },
     header: {
-        height: 60,
-        backgroundColor: '#fff',
+        marginTop: 40,
+        height: 80,
+        backgroundColor: '#000',
         justifyContent: 'center',
         alignItems: 'center',
         borderBottomWidth: 1,
+        borderTopWidth: 1,
+        borderTopColor: '#ddd',
         borderBottomColor: '#ddd',
     },
     headerText: {
+        color: '#fff',
         fontSize: 24,
         fontWeight: 'bold',
     },
     cameraView: {
-        aspectRatio: 4 / 3,
-        backgroundColor: '#000',
+        marginTop: 20,
+        marginHorizontal: "auto",
+        width: "95%",
+        aspectRatio: 3 / 4,
     },
     capturedImage: {
-        aspectRatio: 4 / 3,
-        width: '100%',
-        backgroundColor: '#000',
+        marginHorizontal: "auto",
+        width: "95%",
+        aspectRatio: 3 / 4,
+        //flip the image
+        transform: [{scaleX: -1}],
     },
     captureButton: {
         width: 60,
