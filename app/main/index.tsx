@@ -35,7 +35,7 @@ export default function HomeScreen() {
 
     useEffect(() => {
         (async () => {
-            requestPermission();
+            await requestPermission();
         })();
     }, []);
 const switchToCameraScreen = () => {

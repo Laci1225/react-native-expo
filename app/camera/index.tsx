@@ -1,45 +1,47 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Pressable, Alert} from 'react-native';
-import {Camera, CameraView, CameraViewRef, useCameraPermissions} from 'expo-camera';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Image, FlatList, Pressable } from 'react-native';
+import { Camera, CameraView, CameraViewRef, useCameraPermissions } from 'expo-camera';
 import Ionicons from "@expo/vector-icons/Ionicons";
-import {CameraType} from "expo-camera/legacy";
-import {useRouter} from "expo-router";
+import { CameraType } from "expo-camera/legacy";
+import { useRouter } from "expo-router";
 
+interface FeedItem {
+    id: string;
+    user: string;
+    image: any;
+}
 
+const Post = ({ user, image }: FeedItem) => (
+    <View style={styles.post}>
+        <Text style={styles.postUser}>{user}</Text>
+        <Image source={typeof image === 'string' ? { uri: image } : image} style={styles.postImage} />
+    </View>
+);
 
 export default function CameraScreen() {
     const [facing, setFacing] = useState(CameraType.front);
     const [permission, requestPermission] = useCameraPermissions();
-    //const [feed, setFeed] = useState<FeedItem[]>(initialData);
+    const [feed, setFeed] = useState<FeedItem[]>([]);
+    const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
     const cameraRef = useRef<CameraView | null>(null);
     const router = useRouter();
 
-
     useEffect(() => {
         (async () => {
-            requestPermission();
+            await requestPermission();
         })();
     }, []);
-    const switchToCameraScreen = () => {
-        //route to / camera
-        router.push('/camera');
-    }
+
     const takePicture = async () => {
         if (cameraRef.current) {
-            const photo = await cameraRef.current.takePictureAsync({base64: true});
-            if (photo &&  photo.uri) {
-                /*const updatedFeed = feed.map(item => ({ ...item, image: photo.uri }));
-                setFeed(updatedFeed);*/
+            const photo = await cameraRef.current.takePictureAsync({ base64: true,isImageMirror: false,
+            });
+            if (photo && photo.uri) {
+                setCapturedPhoto(photo.uri);
+                const updatedFeed = [{ id: '1', user: 'You', image: photo.uri }];
+                setFeed(updatedFeed);
             }
-            //wait 3 sec
-            /*setCameraType('front')*/
-            // @ts-ignore
-            /*const frontData = await cameraRef.current.takePictureAsync();
-            setFrontPhoto(frontData.uri);
-            setCameraType('back')
-            // Save the dual photo to the feed
-            setFeed([{ photo: data.uri, frontPhoto: frontData.uri, id: Date.now().toString() }, ...feed]);
-        */}
+        }
     }
 
     return (
@@ -47,16 +49,21 @@ export default function CameraScreen() {
             <View style={styles.header}>
                 <Text style={styles.headerText}>BeReal</Text>
             </View>
+            {capturedPhoto ? (
+                <Image source={{ uri: capturedPhoto }} style={styles.capturedImage} />
+            ):(
+                <>
             <CameraView
                 facing={facing}
                 ref={cameraRef}
-            >
-                <View style={styles.cameraView}>
-                    <Pressable style={styles.captureButton} onPress={()=>switchToCameraScreen()}>
-                        <Ionicons name={"camera"} style={styles.cameraIcon}/>
-                    </Pressable>
-                </View>
-            </CameraView>
+                style={styles.cameraView}
+            />
+            <Pressable style={styles.captureButton} onPress={() => takePicture()}>
+                <Ionicons name={"camera"} style={styles.cameraIcon} />
+            </Pressable>
+                </>
+    )
+            }
         </View>
     );
 }
@@ -79,11 +86,13 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     cameraView: {
-
-        height: 200,
+        aspectRatio: 4 / 3,
         backgroundColor: '#000',
-        justifyContent: 'center',
-        alignItems: 'center',
+    },
+    capturedImage: {
+        aspectRatio: 4 / 3,
+        width: '100%',
+        backgroundColor: '#000',
     },
     captureButton: {
         width: 60,
@@ -92,6 +101,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#ff6347',
         justifyContent: 'center',
         alignItems: 'center',
+        alignSelf: 'center',
+        marginVertical: 20,
     },
     feed: {
         padding: 10,
@@ -111,16 +122,9 @@ const styles = StyleSheet.create({
         width: '100%',
         height: 200,
         borderRadius: 10,
-    }, camera: {
-        flex: 1,
-        justifyContent: 'flex-end',
     },
-    text: {
+    cameraIcon: {
+        fontSize: 30,
         color: 'white',
-    },
-    cameraIcon:
-        {
-            fontSize: 30,
-            color: 'white'
-        }
+    }
 });
