@@ -1,22 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Image, FlatList, Pressable } from 'react-native';
-import { Camera, CameraView, CameraViewRef, useCameraPermissions } from 'expo-camera';
+import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
+import {Camera, CameraView, useCameraPermissions} from 'expo-camera';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { CameraType } from "expo-camera/legacy";
 import { useRouter } from "expo-router";
+import {AntDesign, Feather} from "@expo/vector-icons";
 
 interface FeedItem {
     id: string;
     user: string;
     image: any;
 }
-
-const Post = ({ user, image }: FeedItem) => (
-    <View style={styles.post}>
-        <Text style={styles.postUser}>{user}</Text>
-        <Image source={typeof image === 'string' ? { uri: image } : image} style={styles.postImage} />
-    </View>
-);
 
 export default function CameraScreen() {
     const [facing, setFacing] = useState(CameraType.front);
@@ -28,7 +22,10 @@ export default function CameraScreen() {
 
     useEffect(() => {
         (async () => {
-            await requestPermission();
+            const { status } = await requestPermission();
+            if (status !== 'granted') {
+                alert('Camera permissions are required.');
+            }
         })();
     }, []);
 
@@ -46,26 +43,39 @@ export default function CameraScreen() {
         }
     }
 
+    const retakePicture = () => {
+        setCapturedPhoto(null);
+    }
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerText}>BeReal</Text>
             </View>
             {capturedPhoto ? (
-                <Image source={{ uri: capturedPhoto }} style={styles.capturedImage} />
-            ):(
                 <>
-            <CameraView
-                facing={facing}
-                ref={cameraRef}
-                style={styles.cameraView}
-            />
-            <Pressable style={styles.captureButton} onPress={() => takePicture()}>
-                <Ionicons name={"camera"} style={styles.cameraIcon} />
-            </Pressable>
+                    <Image source={{ uri: capturedPhoto }} style={styles.capturedImage} />
+                    <View style={styles.buttonContainer}>
+                        <Pressable style={styles.button} onPress={retakePicture}>
+                            <Feather name="refresh-cw" size={40} color="white" />
+                        </Pressable>
+                        <Pressable style={styles.button} onPress={() => alert('Pipe button pressed')}>
+                            <AntDesign name="checkcircleo" size={40} color="white" />
+                        </Pressable>
+                    </View>
                 </>
-    )
-            }
+            ) : (
+                <>
+                    <CameraView
+                        facing={facing}
+                        ref={cameraRef}
+                        style={styles.cameraView}
+                    />
+                    <Pressable style={styles.captureButton} onPress={takePicture}>
+                        <Ionicons name={"camera"} style={styles.cameraIcon} />
+                    </Pressable>
+                </>
+            )}
         </View>
     );
 }
@@ -73,7 +83,7 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000000',
+        backgroundColor: '#000',
     },
     header: {
         marginTop: 40,
@@ -98,11 +108,11 @@ const styles = StyleSheet.create({
         aspectRatio: 3 / 4,
     },
     capturedImage: {
+        marginTop: 20,
         marginHorizontal: "auto",
         width: "95%",
         aspectRatio: 3 / 4,
-        //flip the image
-        transform: [{scaleX: -1}],
+        transform: [{ scaleX: -1 }],
     },
     captureButton: {
         width: 60,
@@ -114,24 +124,15 @@ const styles = StyleSheet.create({
         alignSelf: 'center',
         marginVertical: 20,
     },
-    feed: {
+    buttonContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-around',
+        marginVertical: 20,
+    },
+    button: {
+        fontSize: 40,
         padding: 10,
-    },
-    post: {
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        padding: 10,
-        marginBottom: 10,
-    },
-    postUser: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 5,
-    },
-    postImage: {
-        width: '100%',
-        height: 200,
-        borderRadius: 10,
     },
     cameraIcon: {
         fontSize: 30,
