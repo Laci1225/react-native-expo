@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
-import {Camera, CameraView, useCameraPermissions} from 'expo-camera';
+import React, {useEffect, useRef, useState} from 'react';
+import {Image, Pressable, StyleSheet, Text, View} from 'react-native';
+import {CameraView, useCameraPermissions} from 'expo-camera';
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { CameraType } from "expo-camera/legacy";
-import { useRouter } from "expo-router";
+import {CameraType} from "expo-camera/legacy";
+import {useRouter} from "expo-router";
 import {AntDesign, Feather} from "@expo/vector-icons";
 
 interface FeedItem {
@@ -18,11 +18,13 @@ export default function CameraScreen() {
     const [feed, setFeed] = useState<FeedItem[]>([]);
     const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
     const cameraRef = useRef<CameraView | null>(null);
+    const [flash, setFlash] = useState(false);
+    const [flashTriggered, setFlashTriggered] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
         (async () => {
-            const { status } = await requestPermission();
+            const {status} = await requestPermission();
             if (status !== 'granted') {
                 alert('Camera permissions are required.');
             }
@@ -31,18 +33,37 @@ export default function CameraScreen() {
 
     const takePicture = async () => {
         if (cameraRef.current) {
-            const photo = await cameraRef.current.takePictureAsync({
-                quality: 1,
-                base64: true,
-            });
-            if (photo && photo.uri) {
-                setCapturedPhoto(photo.uri);
-                const updatedFeed = [{ id: '1', user: 'You', image: photo.uri }];
-                setFeed(updatedFeed);
+            if (flashTriggered) {
+                setTimeout(async () => {
+                    setFlash(true);
+                    const photo = await cameraRef.current?.takePictureAsync({
+                        quality: 1,
+                        base64: true,
+                    });
+                    if (photo && photo.uri) {
+                        setCapturedPhoto(photo.uri);
+                        const updatedFeed = [{id: '1', user: 'You', image: photo.uri}];
+                        setFeed(updatedFeed);
+                    }
+                    setFlash(false);
+                }, 100);
+            } else {
+                const photo = await cameraRef.current?.takePictureAsync({
+                    quality: 1,
+                    base64: true,
+                });
+                if (photo && photo.uri) {
+                    setCapturedPhoto(photo.uri);
+                    const updatedFeed = [{id: '1', user: 'You', image: photo.uri}];
+                    setFeed(updatedFeed);
+                }
             }
         }
     }
 
+    const toggleFlash = () => {
+        setFlashTriggered(!flashTriggered);
+    };
     const retakePicture = () => {
         setCapturedPhoto(null);
     }
@@ -54,13 +75,13 @@ export default function CameraScreen() {
             </View>
             {capturedPhoto ? (
                 <>
-                    <Image source={{ uri: capturedPhoto }} style={styles.capturedImage} />
+                    <Image source={{uri: capturedPhoto}} style={styles.capturedImage}/>
                     <View style={styles.buttonContainer}>
                         <Pressable style={styles.button} onPress={retakePicture}>
-                            <Feather name="refresh-cw" size={40} color="white" />
+                            <Feather name="refresh-cw" size={40} color="white"/>
                         </Pressable>
                         <Pressable style={styles.button} onPress={() => alert('Pipe button pressed')}>
-                            <AntDesign name="checkcircleo" size={40} color="white" />
+                            <AntDesign name="checkcircleo" size={40} color="white"/>
                         </Pressable>
                     </View>
                 </>
@@ -71,9 +92,16 @@ export default function CameraScreen() {
                         ref={cameraRef}
                         style={styles.cameraView}
                     />
-                    <Pressable style={styles.captureButton} onPress={takePicture}>
-                        <Ionicons name={"camera"} style={styles.cameraIcon} />
-                    </Pressable>
+                    {flash && <View style={styles.flashOverlay}/>}
+                    <View style={styles.buttonContainer}>
+                        <Pressable style={styles.button} onPress={toggleFlash}>
+                            <Ionicons name={flashTriggered ? "flash-outline" : "flash-off-outline"} size={40}
+                                      color="white"/>
+                        </Pressable>
+                        <Pressable style={styles.captureButton} onPress={takePicture}>
+                            <Ionicons name={"camera"} style={styles.cameraIcon}/>
+                        </Pressable>
+                    </View>
                 </>
             )}
         </View>
@@ -112,7 +140,7 @@ const styles = StyleSheet.create({
         marginHorizontal: "auto",
         width: "95%",
         aspectRatio: 3 / 4,
-        transform: [{ scaleX: -1 }],
+        transform: [{scaleX: -1}],
     },
     captureButton: {
         width: 60,
@@ -137,5 +165,11 @@ const styles = StyleSheet.create({
     cameraIcon: {
         fontSize: 30,
         color: 'white',
-    }
+    },
+    flashOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'white',
+        opacity: 1,
+        //set phone brightness to 100%
+    },
 });
