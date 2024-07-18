@@ -5,6 +5,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import {CameraType} from "expo-camera/legacy";
 import {useRouter} from "expo-router";
 import {AntDesign, Feather} from "@expo/vector-icons";
+import {getBrightnessAsync, setBrightnessAsync} from "expo-brightness";
 
 interface FeedItem {
     id: string;
@@ -19,6 +20,7 @@ export default function CameraScreen() {
     const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
     const cameraRef = useRef<CameraView | null>(null);
     const [flash, setFlash] = useState(false);
+    const [originalBrightness, setOriginalBrightness] = useState<number>();
     const [flashTriggered, setFlashTriggered] = useState(false);
     const router = useRouter();
 
@@ -35,6 +37,10 @@ export default function CameraScreen() {
         if (cameraRef.current) {
             if (flashTriggered) {
                 setTimeout(async () => {
+                    const brightness = await getBrightnessAsync();
+                    alert(brightness.toString());
+                    setOriginalBrightness(brightness);
+                    await setBrightnessAsync(1);
                     setFlash(true);
                     const photo = await cameraRef.current?.takePictureAsync({
                         quality: 1,
@@ -45,6 +51,7 @@ export default function CameraScreen() {
                         const updatedFeed = [{id: '1', user: 'You', image: photo.uri}];
                         setFeed(updatedFeed);
                     }
+                    await setBrightnessAsync(originalBrightness? originalBrightness : 0.5); //todo
                     setFlash(false);
                 }, 100);
             } else {
@@ -68,6 +75,10 @@ export default function CameraScreen() {
         setCapturedPhoto(null);
     }
 
+    function publishPhoto() {
+
+    }
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -80,7 +91,7 @@ export default function CameraScreen() {
                         <Pressable style={styles.button} onPress={retakePicture}>
                             <Feather name="refresh-cw" size={40} color="white"/>
                         </Pressable>
-                        <Pressable style={styles.button} onPress={() => alert('Pipe button pressed')}>
+                        <Pressable style={styles.button} onPress={() => publishPhoto()}>
                             <AntDesign name="checkcircleo" size={40} color="white"/>
                         </Pressable>
                     </View>
