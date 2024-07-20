@@ -1,21 +1,59 @@
-import useAuth from "@/hooks/useAuth";
-import React from "react";
-import {Screen} from "react-native-screens";
-import {Button, Text} from "react-native";
-import {useNavigation, useRouter} from "expo-router";
+import {DarkTheme, DefaultTheme, ThemeProvider} from '@react-navigation/native';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import React, { useEffect } from 'react';
+import 'react-native-reanimated';
 
-export default function Home() {
-    const { webLogin } = useAuth();
-    const router = useRouter();
+import { useColorScheme } from '@/hooks/useColorScheme';
+import HomeScreen from "@/app/main";
+import CameraScreen from "@/app/camera";
+import {createStackNavigator} from "@react-navigation/stack";
 
-    const onNativeLogin = () => {
-        router.push('/b');
-    };
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
+const Stack = createStackNavigator();
+
+
+export default function RootLayout() {
+    const colorScheme = useColorScheme();
+    const [loaded] = useFonts({
+        SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    });
+
+    useEffect(() => {
+        if (loaded) {
+            SplashScreen.hideAsync();
+        }
+    }, [loaded]);
+
+    if (!loaded) {
+        return null;
+    }
     return (
-        <Screen>
-            <Text>Welcome to the app!</Text>
-            <Button title="Login" onPress={webLogin} />
-            <Button title="Navigate to Login" onPress={() =>onNativeLogin()} />
-        </Screen>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <Stack.Navigator>
+                <Stack.Screen name="main" component={HomeScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="camera" component={CameraScreen} options={{ headerShown: false }} />
+            </Stack.Navigator>
+        </ThemeProvider>
+    )/*
+  return <HomeScreen />;
+  //return <Stack />;
+
+    return (
+        <NavigationContainer>
+          <Stack >
+            <Stack.Screen name="main"/>
+            {/* Add other screens here *//*}
+          </Stack>
+        </NavigationContainer>
     );
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </ThemeProvider>
+  );*/
 }

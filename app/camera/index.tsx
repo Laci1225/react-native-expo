@@ -6,6 +6,7 @@ import {CameraType} from "expo-camera/legacy";
 import {useRouter} from "expo-router";
 import {AntDesign, Feather} from "@expo/vector-icons";
 import {getBrightnessAsync, setBrightnessAsync} from "expo-brightness";
+import axios, {AxiosError} from "axios";
 
 interface FeedItem {
     id: string;
@@ -17,7 +18,7 @@ export default function CameraScreen() {
     const [facing, setFacing] = useState(CameraType.front);
     const [permission, requestPermission] = useCameraPermissions();
     const [feed, setFeed] = useState<FeedItem[]>([]);
-    const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+    const [capturedPhoto, setCapturedPhoto] = useState<PhotoData | null>(null);
     const cameraRef = useRef<CameraView | null>(null);
     const [flash, setFlash] = useState(false);
     const [originalBrightness, setOriginalBrightness] = useState<number>();
@@ -47,9 +48,11 @@ export default function CameraScreen() {
                         base64: true,
                     });
                     if (photo && photo.uri) {
-                        setCapturedPhoto(photo.uri);
-                        const updatedFeed = [{id: '1', user: 'You', image: photo.uri}];
-                        setFeed(updatedFeed);
+                        const updatedPhoto:PhotoData = {
+                            data: photo.uri,mimeType: 'image/jpeg',name: 'photo.jpg'};
+                        setCapturedPhoto(updatedPhoto);
+                        //const updatedFeed = [{id: '1', user: 'You', image: photo.uri}];
+                        //setFeed(updatedFeed);
                     }
                     await setBrightnessAsync(originalBrightness? originalBrightness : 0.5); //todo
                     setFlash(false);
@@ -60,9 +63,11 @@ export default function CameraScreen() {
                     base64: true,
                 });
                 if (photo && photo.uri) {
-                    setCapturedPhoto(photo.uri);
-                    const updatedFeed = [{id: '1', user: 'You', image: photo.uri}];
-                    setFeed(updatedFeed);
+                    const updatedPhoto:PhotoData = {
+                        data: photo.uri,mimeType: 'image/jpeg',name: 'photo.jpg'};
+                    setCapturedPhoto(updatedPhoto);
+                    //const updatedFeed = [{id: '1', user: 'You', image: photo.uri}];
+                    //setFeed(updatedFeed);
                 }
             }
         }
@@ -76,7 +81,22 @@ export default function CameraScreen() {
     }
 
     function publishPhoto() {
-
+        const photoSendData = {
+            name: capturedPhoto?.name,
+            data: capturedPhoto?.data,
+            mimeType: capturedPhoto?.mimeType,
+        }
+        axios.post('https://9287-81-16-205-250.ngrok-free.app/photos', photoSendData,{
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        }).then((value) => {
+            router.push('/');
+        }).catch((error:AxiosError) => {
+            console.log(error)
+            console.log(error.stack)
+            alert(error + 'Failed to publish photo');
+        });
     }
 
     return (
@@ -86,7 +106,7 @@ export default function CameraScreen() {
             </View>
             {capturedPhoto ? (
                 <>
-                    <Image source={{uri: capturedPhoto}} style={styles.capturedImage}/>
+                    <Image source={{uri: capturedPhoto.data}} style={styles.capturedImage}/>
                     <View style={styles.buttonContainer}>
                         <Pressable style={styles.button} onPress={retakePicture}>
                             <Feather name="refresh-cw" size={40} color="white"/>
