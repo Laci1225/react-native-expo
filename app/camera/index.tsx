@@ -7,6 +7,7 @@ import {useRouter} from "expo-router";
 import {AntDesign, Feather} from "@expo/vector-icons";
 import {getBrightnessAsync, setBrightnessAsync} from "expo-brightness";
 import axios, {AxiosError} from "axios";
+import {client} from "@/api/client";
 
 interface FeedItem {
     id: string;
@@ -86,7 +87,7 @@ export default function CameraScreen() {
             data: capturedPhoto?.data,
             mimeType: capturedPhoto?.mimeType,
         }
-        axios.post('https://9287-81-16-205-250.ngrok-free.app/photos', photoSendData,{
+        client.post('/photos', photoSendData,{
             headers: {
                 'Content-Type': 'application/json',
             },

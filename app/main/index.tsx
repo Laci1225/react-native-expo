@@ -4,24 +4,24 @@ import {Camera, CameraView, CameraViewRef, useCameraPermissions} from 'expo-came
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {CameraType} from "expo-camera/legacy";
 import {useRouter} from "expo-router";
+import axios, {AxiosError} from "axios";
+import {client} from "@/api/client";
 
 
 const initialData = [
-    { id: '1', user: 'Alicee', image: require('@/assets/images/react-logo.png') },
-    { id: '2', user: 'Bob', image: require('@/assets/images/partial-react-logo.png') },
-    { id: '3', user: 'Cintia', image: require('@/assets/images/icon.png') },
+    { id: '111', name: 'Alicee', data: require('@/assets/images/react-logo.png') },
     // Add more sample posts here
 ];
 interface FeedItem {
     id: string;
-    user: string;
-    image: any;
+    name: string;
+    data: any;
 }
 
-const Post = ({ user, image }:FeedItem) => (
+const Post = ({ name, data }:FeedItem) => (
     <View style={styles.post}>
-        <Text style={styles.postUser}>{user}</Text>
-        <Image source={typeof image === 'string' ? { uri: image } : image} style={styles.postImage} />
+        <Text style={styles.postUser}>{name}</Text>
+        <Image source={typeof data === 'string' ? { uri: data } : data} style={styles.postImage} />
     </View>
 );
 
@@ -37,6 +37,15 @@ export default function HomeScreen() {
         (async () => {
             await requestPermission();
         })();
+        client.get('photos/1')
+            .then(value => {
+                setFeed(prevState => [...prevState, value.data])
+                //initialData.push(value.data)
+            }).catch(
+            (error: AxiosError) => {
+                alert(error);
+            })
+
     }, []);
 const switchToCameraScreen = () => {
     //route to / camera
@@ -77,7 +86,7 @@ const switchToCameraScreen = () => {
                 </CameraView>
             <FlatList
                 data={feed}
-                renderItem={({ item }) => <Post id={item.id} user={item.user} image={item.image/* ONLY WORKS AFTER FIRST PIC TAKEN item.image*/} />}
+                renderItem={({ item }) => <Post id={item.id} name={item.name} data={item.data/* ONLY WORKS AFTER FIRST PIC TAKEN item.image*/} />}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.feed}
             />
