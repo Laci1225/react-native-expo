@@ -6,24 +6,32 @@ import {CameraType} from "expo-camera/legacy";
 import {useRouter} from "expo-router";
 import {AntDesign, Feather} from "@expo/vector-icons";
 import {getBrightnessAsync, setBrightnessAsync} from "expo-brightness";
-import axios, {AxiosError} from "axios";
+import {AxiosError} from "axios";
 import {client} from "@/api/client";
 
-interface FeedItem {
-    id: string;
-    user: string;
-    image: any;
+interface PhotoData {
+    data: string;
+    mimeType: string;
+    name: string;
+}
+interface CapturedPhotos {
+    front: PhotoData | null;
+    back: PhotoData | null;
+
 }
 
 export default function CameraScreen() {
     const [facing, setFacing] = useState(CameraType.front);
     const [permission, requestPermission] = useCameraPermissions();
-    const [feed, setFeed] = useState<FeedItem[]>([]);
-    const [capturedPhoto, setCapturedPhoto] = useState<PhotoData | null>(null);
+    const [capturedPhotos, setCapturedPhotos] = useState<CapturedPhotos>({
+        front: null,
+        back: null
+    });
     const cameraRef = useRef<CameraView | null>(null);
     const [flash, setFlash] = useState(false);
     const [originalBrightness, setOriginalBrightness] = useState<number>();
     const [flashTriggered, setFlashTriggered] = useState(false);
+    const [isCapturing, setIsCapturing] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -40,22 +48,25 @@ export default function CameraScreen() {
             if (flashTriggered) {
                 setTimeout(async () => {
                     const brightness = await getBrightnessAsync();
-                    alert(brightness.toString());
                     setOriginalBrightness(brightness);
                     await setBrightnessAsync(1);
                     setFlash(true);
+
                     const photo = await cameraRef.current?.takePictureAsync({
                         quality: 1,
                         base64: true,
                     });
+
                     if (photo && photo.uri) {
-                        const updatedPhoto:PhotoData = {
-                            data: photo.uri,mimeType: 'image/jpeg',name: 'photo.jpg'};
-                        setCapturedPhoto(updatedPhoto);
-                        //const updatedFeed = [{id: '1', user: 'You', image: photo.uri}];
-                        //setFeed(updatedFeed);
+                        const updatedPhoto: PhotoData = {
+                            data: photo.uri,
+                            mimeType: 'image/jpeg',
+                            name: 'photo.jpg'
+                        };
+                        handleCapturedPhoto(updatedPhoto);
                     }
-                    await setBrightnessAsync(originalBrightness? originalBrightness : 0.5); //todo
+
+                    await setBrightnessAsync(originalBrightness ? originalBrightness : 0.5);
                     setFlash(false);
                 }, 100);
             } else {
@@ -63,51 +74,71 @@ export default function CameraScreen() {
                     quality: 1,
                     base64: true,
                 });
+
                 if (photo && photo.uri) {
-                    const updatedPhoto:PhotoData = {
-                        data: photo.uri,mimeType: 'image/jpeg',name: 'photo.jpg'};
-                    setCapturedPhoto(updatedPhoto);
-                    //const updatedFeed = [{id: '1', user: 'You', image: photo.uri}];
-                    //setFeed(updatedFeed);
+                    const updatedPhoto: PhotoData = {
+                        data: photo.uri,
+                        mimeType: 'image/jpeg',
+                        name: 'photo.jpg'
+                    };
+                    handleCapturedPhoto(updatedPhoto);
                 }
             }
         }
-    }
+    };
+
+    const handleCapturedPhoto = (photo: PhotoData) => {
+        if (facing === CameraType.front) {
+            setCapturedPhotos((prev) => ({...prev, front: photo}));
+            setFacing(CameraType.back);
+            setIsCapturing(false);
+        } else {
+            setCapturedPhotos((prev) => ({...prev, back: photo}));
+            setIsCapturing(false);
+        }
+    };
 
     const toggleFlash = () => {
         setFlashTriggered(!flashTriggered);
     };
-    const retakePicture = () => {
-        setCapturedPhoto(null);
-    }
 
-    function publishPhoto() {
-        const photoSendData = {
-            name: capturedPhoto?.name,
-            data: capturedPhoto?.data,
-            mimeType: capturedPhoto?.mimeType,
-        }
-        client.post('/photos', photoSendData,{
+    const retakePicture = () => {
+        setCapturedPhotos({front: null, back: null});
+        setFacing(CameraType.front);
+    };
+
+    const publishPhoto = () => {
+        client.post('/photos', capturedPhotos, {
             headers: {
                 'Content-Type': 'application/json',
             },
-        }).then((value) => {
+        }).then(() => {
             router.push('/');
-        }).catch((error:AxiosError) => {
-            console.log(error)
-            console.log(error.stack)
+        }).catch((error: AxiosError) => {
+            console.log(error);
+            console.log(error.stack);
             alert(error + 'Failed to publish photo');
         });
-    }
+    };
+
+    useEffect(() => {
+        if (!isCapturing && facing === CameraType.back && capturedPhotos.front) {
+            setIsCapturing(true);
+            takePicture();
+        }
+    }, [facing, capturedPhotos.front]);
 
     return (
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerText}>BeReal</Text>
             </View>
-            {capturedPhoto ? (
+            {capturedPhotos.front && capturedPhotos.back ? (
                 <>
-                    <Image source={{uri: capturedPhoto.data}} style={styles.capturedImage}/>
+                    <View style={styles.imagesContainer}>
+                        <Image source={{uri: capturedPhotos.front.data}} style={styles.capturedImageBig}/>
+                        <Image source={{uri: capturedPhotos.back.data}} style={styles.capturedImageSmall}/>
+                    </View>
                     <View style={styles.buttonContainer}>
                         <Pressable style={styles.button} onPress={retakePicture}>
                             <Feather name="refresh-cw" size={40} color="white"/>
@@ -119,18 +150,23 @@ export default function CameraScreen() {
                 </>
             ) : (
                 <>
+                    <View style={styles.cameraContainer}>
                     <CameraView
                         facing={facing}
                         ref={cameraRef}
                         style={styles.cameraView}
                     />
+                    </View>
                     {flash && <View style={styles.flashOverlay}/>}
                     <View style={styles.buttonContainer}>
                         <Pressable style={styles.button} onPress={toggleFlash}>
                             <Ionicons name={flashTriggered ? "flash-outline" : "flash-off-outline"} size={40}
                                       color="white"/>
                         </Pressable>
-                        <Pressable style={styles.captureButton} onPress={takePicture}>
+                        <Pressable style={styles.captureButton} onPress={() => {
+                            setIsCapturing(true);
+                            takePicture();
+                        }}>
                             <Ionicons name={"camera"} style={styles.cameraIcon}/>
                         </Pressable>
                     </View>
@@ -161,16 +197,37 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
     },
-    cameraView: {
-        marginTop: 20,
-        marginHorizontal: "auto",
+    cameraContainer: {
+        borderRadius: 25,
+        overflow: 'hidden',
         width: "95%",
         aspectRatio: 3 / 4,
+        alignSelf: 'center',
+        marginVertical: 20,
     },
-    capturedImage: {
-        marginTop: 20,
-        marginHorizontal: "auto",
+    cameraView: {
+        width: "100%",
+        height: "100%",
+    },
+    imagesContainer: {
+        flexDirection: 'column',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        marginVertical: 20,
+        marginHorizontal: 10,
+    },
+    capturedImageBig: {
+        borderRadius: 25,
         width: "95%",
+        aspectRatio: 3 / 4,
+        transform: [{scaleX: -1}],
+    },
+    capturedImageSmall: {
+        borderRadius: 15,
+        position: 'absolute',
+        top: 15,
+        left: 30,
+        width: "25%",
         aspectRatio: 3 / 4,
         transform: [{scaleX: -1}],
     },
@@ -202,6 +259,5 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'white',
         opacity: 1,
-        //set phone brightness to 100%
     },
 });
