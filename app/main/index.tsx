@@ -1,10 +1,10 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Pressable, Alert} from 'react-native';
-import {Camera, CameraView, CameraViewRef, useCameraPermissions} from 'expo-camera';
+import {View, Text, StyleSheet, Image, FlatList, Pressable} from 'react-native';
+import { CameraView, useCameraPermissions} from 'expo-camera';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import {CameraType} from "expo-camera/legacy";
 import {useRouter} from "expo-router";
-import axios, {AxiosError} from "axios";
+import {AxiosError} from "axios";
 import {client} from "@/api/client";
 
 
@@ -19,10 +19,16 @@ interface FeedItem {
 }
 
 const Post = ({ name, data }:FeedItem) => (
-    <View style={styles.post}>
-        <Text style={styles.postUser}>{name}</Text>
-        <Image source={typeof data === 'string' ? { uri: data } : data} style={styles.postImage} />
+      <View>
+          <View style={styles.postUserContainer}>
+          <Image style={styles.profilePhoto}/>
+          <Text style={styles.postUser}>{name}</Text>
+          </View>
+        <View style={styles.imagesContainer}>
+        <Image source={typeof data === 'string' ? { uri: data } : data} style={styles.capturedImageBig}/>
+        <Image source={typeof data === 'string' ? { uri: data } : data} style={styles.capturedImageSmall}/>
     </View>
+      </View>
 );
 
 export default function HomeScreen() {
@@ -82,6 +88,7 @@ const switchToCameraScreen = () => {
                         <Pressable style={styles.captureButton} onPress={()=>switchToCameraScreen()}>
                             <Ionicons name={"camera"} style={styles.cameraIcon}/>
                         </Pressable>
+                            <Text style={{color: "white"}}>Take a BeReal</Text>
                     </View>
                 </CameraView>
             <FlatList
@@ -96,8 +103,9 @@ const switchToCameraScreen = () => {
 
 const styles = StyleSheet.create({
     container: {
+        marginTop: 40,
         flex: 1,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#000000',
     },
     header: {
         height: 60,
@@ -112,7 +120,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     cameraView: {
-
         height: 200,
         backgroundColor: '#000',
         justifyContent: 'center',
@@ -129,31 +136,63 @@ const styles = StyleSheet.create({
     feed: {
         padding: 10,
     },
-    post: {
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        padding: 10,
-        marginBottom: 10,
-    },
     postUser: {
+        color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
-        marginBottom: 5,
     },
-    postImage: {
-        width: '100%',
-        height: 200,
+    /*postImage: {
+        marginHorizontal: "auto",
+        height: 440,
+        width: "99%",
         borderRadius: 10,
-    }, camera: {
+    },*/
+    camera: {
         flex: 1,
         justifyContent: 'flex-end',
     },
     text: {
-        color: 'white',
+        color: '#fff',
     },
     cameraIcon:
         {
             fontSize: 30,
             color: 'white'
-        }
+        },
+    capturedImageBig: {
+        borderRadius: 25,
+        width: "99%",
+        backgroundColor: '#fff',
+        aspectRatio: 3 / 4,
+        transform: [{scaleX: -1}],
+    },
+    capturedImageSmall: {
+        backgroundColor: '#000',
+        borderRadius: 15,
+        position: 'absolute',
+        top: 30,
+        left: 30,
+        width: "30%",
+        aspectRatio: 3 / 4,
+        transform: [{scaleX: -1}],
+    },
+    imagesContainer: {
+        alignItems: 'center',
+        marginVertical: 20,
+        marginHorizontal: 10,
+    },
+    profilePhoto: {
+        width: 40,
+        height: 40,
+        marginHorizontal: 10,
+        borderRadius: 25,
+        backgroundColor: '#fff',
+    },
+    postUserContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginHorizontal: 10,
+        marginVertical: 10,
+    }
+
 });
