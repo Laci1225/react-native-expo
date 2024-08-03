@@ -6,29 +6,33 @@ import {CameraType} from "expo-camera/legacy";
 import {useRouter} from "expo-router";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
-
+import {BlurView} from "expo-blur";
 
 const initialData = [
     { id: '111', name: 'Alicee', data: require('@/assets/images/react-logo.png') },
     // Add more sample posts here
 ];
+
 interface FeedItem {
     id: string;
     name: string;
     data: any;
 }
 
-const Post = ({ name, data }:FeedItem) => (
-      <View>
-          <View style={styles.postUserContainer}>
-          <Image style={styles.profilePhoto}/>
-          <Text style={styles.postUser}>{name}</Text>
-          </View>
+const Post = ({ name, data, blur }: FeedItem & { blur: boolean }) => (
+    <View>
+        <View style={styles.postUserContainer}>
+            <Image style={styles.profilePhoto}/>
+            <Text style={styles.postUser}>{name}</Text>
+        </View>
         <View style={styles.imagesContainer}>
-        <Image source={typeof data === 'string' ? { uri: data } : data} style={styles.capturedImageBig}/>
-        <Image source={typeof data === 'string' ? { uri: data } : data} style={styles.capturedImageSmall}/>
+                    <Image source={typeof data === 'string' ? { uri: data } : data} style={styles.capturedImageBig}/>
+                    <Image source={typeof data === 'string' ? { uri: data } : data} style={styles.capturedImageSmall}/>
+            {
+              !blur && <BlurView intensity={50} experimentalBlurMethod={"dimezisBlurView"} style={styles.blurOverlay}/>
+            }
+            </View>
     </View>
-      </View>
 );
 
 export default function HomeScreen() {
@@ -37,42 +41,34 @@ export default function HomeScreen() {
     const [feed, setFeed] = useState<FeedItem[]>(initialData);
     const cameraRef = useRef<CameraView | null>(null);
     const router = useRouter();
-
+    const [myBeReal, setMyBeReal] = useState<string | null>(null);
 
     useEffect(() => {
         (async () => {
             await requestPermission();
         })();
-        client.get('photos/1')
+        client.get('photos/4')
             .then(value => {
-                setFeed(prevState => [...prevState, value.data])
-                //initialData.push(value.data)
-            }).catch(
-            (error: AxiosError) => {
-                alert(error);
-            })
-
+                setFeed([value.data])
+                //setFeed(prevState => [...prevState, value.data])
+            }).catch((error: AxiosError) => {
+            alert(error);
+        });
     }, []);
-const switchToCameraScreen = () => {
-    //route to / camera
-    router.push('/camera');
-}
+
+    const switchToCameraScreen = () => {
+        router.push('/camera');
+    }
+
     const takePicture = async () => {
         if (cameraRef.current) {
-            const photo = await cameraRef.current.takePictureAsync({base64: true});
-            if (photo &&  photo.uri) {
+            const photo = await cameraRef.current.takePictureAsync({ base64: true });
+            if (photo && photo.uri) {
+                setMyBeReal(photo.uri); // Set myBeReal with the new photo
                 const updatedFeed = feed.map(item => ({ ...item, image: photo.uri }));
                 setFeed(updatedFeed);
             }
-            //wait 3 sec
-            /*setCameraType('front')*/
-            // @ts-ignore
-            /*const frontData = await cameraRef.current.takePictureAsync();
-            setFrontPhoto(frontData.uri);
-            setCameraType('back')
-            // Save the dual photo to the feed
-            setFeed([{ photo: data.uri, frontPhoto: frontData.uri, id: Date.now().toString() }, ...feed]);
-        */}
+        }
     }
 
     return (
@@ -80,20 +76,24 @@ const switchToCameraScreen = () => {
             <View style={styles.header}>
                 <Text style={styles.headerText}>BeReal</Text>
             </View>
-                <CameraView
-                    facing={facing}
-                    ref={cameraRef}
-                >
-                    <View style={styles.cameraView}>
-                        <Pressable style={styles.captureButton} onPress={()=>switchToCameraScreen()}>
-                            <Ionicons name={"camera"} style={styles.cameraIcon}/>
-                        </Pressable>
-                            <Text style={{color: "white"}}>Take a BeReal</Text>
-                    </View>
-                </CameraView>
+            <CameraView facing={facing} ref={cameraRef}>
+                <View style={styles.cameraView}>
+                    <Pressable style={styles.captureButton} onPress={switchToCameraScreen}>
+                        <Ionicons name={"camera"} style={styles.cameraIcon}/>
+                    </Pressable>
+                    <Text style={{color: "white"}}>Take a BeReal</Text>
+                </View>
+            </CameraView>
             <FlatList
                 data={feed}
-                renderItem={({ item }) => <Post id={item.id} name={item.name} data={item.data/* ONLY WORKS AFTER FIRST PIC TAKEN item.image*/} />}
+                renderItem={({ item }) => (
+                    <Post
+                        id={item.id}
+                        name={item.name}
+                        data={item.data}
+                        blur={!myBeReal} // Conditionally blur images if myBeReal is not set
+                    />
+                )}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.feed}
             />
@@ -141,12 +141,6 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
-    /*postImage: {
-        marginHorizontal: "auto",
-        height: 440,
-        width: "99%",
-        borderRadius: 10,
-    },*/
     camera: {
         flex: 1,
         justifyContent: 'flex-end',
@@ -154,11 +148,10 @@ const styles = StyleSheet.create({
     text: {
         color: '#fff',
     },
-    cameraIcon:
-        {
-            fontSize: 30,
-            color: 'white'
-        },
+    cameraIcon: {
+        fontSize: 30,
+        color: 'white'
+    },
     capturedImageBig: {
         borderRadius: 25,
         width: "99%",
@@ -193,6 +186,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginHorizontal: 10,
         marginVertical: 10,
+    },
+    blurOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 15,
+        overflow: 'hidden',
     }
-
 });
