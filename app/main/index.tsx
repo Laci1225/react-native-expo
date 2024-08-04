@@ -1,11 +1,12 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {View, Text, StyleSheet, Image, FlatList, Pressable} from 'react-native';
-import { CameraView, useCameraPermissions} from 'expo-camera';
+import { useCameraPermissions} from 'expo-camera';
 import {CameraType} from "expo-camera/legacy";
 import {useRouter} from "expo-router";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
 import {BlurView} from "expo-blur";
+import { FontAwesome} from "@expo/vector-icons";
 
 const initialData = [
     { id: '111', name: 'Alicee', data: require('@/assets/images/react-logo.png') },
@@ -17,6 +18,10 @@ interface FeedItem {
     name: string;
     data: any;
 }
+interface WholeBeReal {
+    data1: any,
+    data2: any
+}
 
 
 export default function HomeScreen() {
@@ -24,7 +29,7 @@ export default function HomeScreen() {
     const [permission, requestPermission] = useCameraPermissions();
     const [feed, setFeed] = useState<FeedItem[]>(initialData);
     const router = useRouter();
-    const [myBeReal, setMyBeReal] = useState<FeedItem |null>(null);
+    const [myBeReal, setMyBeReal] = useState<FeedItem[] |null>(null);
 
     useEffect(() => {
         (async () => {
@@ -32,14 +37,19 @@ export default function HomeScreen() {
         })();
         client.get('photos/4')
             .then(value => {
-                setFeed([value.data])
+                setFeed([value.data,value.data])
                 //setFeed(prevState => [...prevState, value.data])
             }).catch((error: AxiosError) => {
             alert(error);
         });
-        client.get('photos/today/6')
+        client.get('photos/today/7')
             .then(value => {
-                setMyBeReal(value.data)
+                client.get('photos/today/8')
+                    .then(value2 => {
+                        setMyBeReal([value2.data,value.data])
+                    }).catch((error: AxiosError) => {
+                    alert(error);
+                });
             }).catch((error: AxiosError) => {
             alert(error);
         });
@@ -72,14 +82,14 @@ export default function HomeScreen() {
             </View>
         </View>
     );
-    const MyPost = ({data }: FeedItem & { myBeRealIsTaken: boolean }) => (
+    const MyPost = ({data1,data2 }:WholeBeReal) => (
         <View>
             <View style={styles.postUserContainer}>
             </View>
             <View style={styles.myImagesContainer}>
-                <Image source={typeof data === 'string' ? { uri: data } : data}
+                <Image source={typeof data1 === 'string' ? { uri: data1 } : data2}
                        style={styles.myCapturedImageBig}/>
-                <Image source={typeof data === 'string' ? { uri: data } : data}
+                <Image source={typeof data2 === 'string' ? { uri: data2 } : data2}
                        style={styles.myCapturedImageSmall}/>
             </View>
         </View>
@@ -93,10 +103,9 @@ export default function HomeScreen() {
             </View>
             {myBeReal && (
                 <MyPost
-                    id={myBeReal.id}
-                    name={myBeReal.name}
-                    data={myBeReal.data}
-                    myBeRealIsTaken={true}/>)
+                    data1={myBeReal[0].data}
+                    data2={myBeReal[1].data}
+                />)
             }
             <FlatList
                 data={feed}
@@ -111,6 +120,8 @@ export default function HomeScreen() {
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.feed}
             />
+            <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
+            onPress={switchToCameraScreen}/>
         </View>
     );
 }
@@ -138,7 +149,7 @@ const styles = StyleSheet.create({
         height: 60,
         borderRadius: 30,
         backgroundColor: '#555555',
-        opacity: 0.4,
+        opacity: 0.8,
         justifyContent: 'center',
         alignItems: 'center',
         position: 'absolute',
@@ -174,7 +185,7 @@ const styles = StyleSheet.create({
     },
     imagesContainer: {
         alignItems: 'center',
-        marginVertical: 20,
+        marginVertical: 5,
         marginHorizontal: 10,
     },
     profilePhoto: {
@@ -214,6 +225,11 @@ const styles = StyleSheet.create({
         width: "30%",
         aspectRatio: 3 / 4,
         transform: [{scaleX: -1}],
+    },
+    captureCircle: {
+        bottom: 20,
+        position: 'absolute',
+        alignSelf: 'center',
     }
 
 });
