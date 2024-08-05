@@ -7,6 +7,8 @@ import {AxiosError} from "axios";
 import {client} from "@/api/client";
 import {BlurView} from "expo-blur";
 import { FontAwesome} from "@expo/vector-icons";
+import * as Location from 'expo-location';
+import {LocationObject} from "expo-location";
 
 const initialData = [
     { id: '111', name: 'Alicee', data: require('@/assets/images/react-logo.png') },
@@ -30,10 +32,20 @@ export default function HomeScreen() {
     const [feed, setFeed] = useState<FeedItem[]>(initialData);
     const router = useRouter();
     const [myBeReal, setMyBeReal] = useState<FeedItem[] |null>(null);
+    const [location, setLocation] = useState<LocationObject |null>(null);
+    const [locationName, setLocationName] = useState<string |null>(null);
 
     useEffect(() => {
         (async () => {
             await requestPermission();
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                return;
+            }
+            let location = await Location.getCurrentPositionAsync({});
+            setLocation(location);
+            let locationName = await Location.reverseGeocodeAsync({latitude: location.coords.latitude, longitude: location.coords.longitude});
+            setLocationName(locationName[0].city + ", " + locationName[0].country);
         })();
         client.get('photos/4')
             .then(value => {
@@ -53,6 +65,8 @@ export default function HomeScreen() {
             }).catch((error: AxiosError) => {
             alert(error);
         });
+
+
     }, []);
 
     const switchToCameraScreen = () => {
@@ -92,6 +106,18 @@ export default function HomeScreen() {
                 <Image source={typeof data2 === 'string' ? { uri: data2 } : data2}
                        style={styles.myCapturedImageSmall}/>
             </View>
+            <View style={{alignItems:"center"}}>
+                <Text style={styles.text}>Add a caption...</Text>
+                <View style={{flexDirection:"row",alignItems:"center"}}>
+                <Text style={styles.text}>{
+                    locationName
+                }
+                </Text>
+                    <View style={{width:8,height:8, marginHorizontal: 8,
+                        borderRadius: 4, backgroundColor:"white"}} />
+                <Text style={styles.text}>{new Date().toLocaleTimeString()}</Text>
+            </View>
+                </View>
         </View>
     );
 
@@ -101,15 +127,7 @@ export default function HomeScreen() {
             <View style={styles.header}>
                 <Text style={styles.headerText}>BeReal</Text>
             </View>
-            {myBeReal && (
-                <MyPost
-                    data1={myBeReal[0].data}
-                    data2={myBeReal[1].data}
-                />)
-            }
-            <FlatList
-                data={feed}
-                renderItem={({ item }) => (
+            <FlatList data={feed} renderItem={({ item }) => (
                     <Post
                         id={item.id}
                         name={item.name}
@@ -118,7 +136,12 @@ export default function HomeScreen() {
                     />
                 )}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.feed}
+                      ListHeaderComponent={myBeReal && (
+                          <MyPost
+                              data1={myBeReal[0].data}
+                              data2={myBeReal[1].data}
+                          />
+                      )}
             />
             <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
             onPress={switchToCameraScreen}/>
@@ -154,9 +177,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         position: 'absolute',
         bottom: 40,
-    },
-    feed: {
-        padding: 10,
     },
     postUser: {
         color: '#fff',
