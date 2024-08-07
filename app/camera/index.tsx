@@ -8,16 +8,15 @@ import {AntDesign, Feather} from "@expo/vector-icons";
 import {getBrightnessAsync, setBrightnessAsync} from "expo-brightness";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
+import {BeReal, BeRealInput} from "@/model/be-real";
 
 interface PhotoData {
-    data: string;
-    mimeType: string;
-    name: string;
+    uri: string;
+    bytes: Uint8Array;
 }
 interface CapturedPhotos {
     front: PhotoData | null;
     back: PhotoData | null;
-
 }
 
 export default function CameraScreen() {
@@ -44,6 +43,7 @@ export default function CameraScreen() {
     }, []);
 
     const takePicture = async () => {
+        let utf8Encode = new TextEncoder();
         if (cameraRef.current) {
             if (flashTriggered) {
                 setTimeout(async () => {
@@ -59,9 +59,8 @@ export default function CameraScreen() {
 
                     if (photo && photo.uri) {
                         const updatedPhoto: PhotoData = {
-                            data: photo.uri,
-                            mimeType: 'image/jpeg',
-                            name: 'photo.jpg'
+                            uri: photo.uri,
+                            bytes: utf8Encode.encode(photo.base64 || '')
                         };
                         handleCapturedPhoto(updatedPhoto);
                     }
@@ -77,9 +76,8 @@ export default function CameraScreen() {
 
                 if (photo && photo.uri) {
                     const updatedPhoto: PhotoData = {
-                        data: photo.uri,
-                        mimeType: 'image/jpeg',
-                        name: 'photo.jpg'
+                        uri: photo.uri,
+                        bytes: utf8Encode.encode(photo.base64 || '')
                     };
                     handleCapturedPhoto(updatedPhoto);
                 }
@@ -108,17 +106,29 @@ export default function CameraScreen() {
     };
 
     const publishPhoto = () => {
-        client.post('/photos', capturedPhotos, {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        }).then(() => {
-            router.push('/');
-        }).catch((error: AxiosError) => {
-            console.log(error);
-            console.log(error.stack);
-            alert(error + 'Failed to publish photo');
-        });
+        if (capturedPhotos.front && capturedPhotos.back) {
+            const postData : BeRealInput = {
+                user: {userId: 1,phoneNumber:"string",birthDate:"2000-12-25",nickname:"string"}, // TODO: Replace with actual user data
+                frontPhoto: Array.from(capturedPhotos.front.bytes),
+                backPhoto: Array.from(capturedPhotos.back.bytes),
+                location: 'Unknown',
+            };
+
+            client.post('/bereals/upload', postData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            }).then(() => {
+                alert('Photo uploaded successfully.')
+                router.push('/');
+            }).catch((error: AxiosError) => {
+                alert('An error occurred while uploading the photo.');
+                console.log(error);
+                console.log(error.stack);
+            });
+        } else {
+            alert('Both front and back photos are required.');
+        }
     };
 
     useEffect(() => {
@@ -136,8 +146,8 @@ export default function CameraScreen() {
             {capturedPhotos.front && capturedPhotos.back ? (
                 <>
                     <View style={styles.imagesContainer}>
-                        <Image source={{uri: capturedPhotos.front.data}} style={styles.capturedImageBig}/>
-                        <Image source={{uri: capturedPhotos.back.data}} style={styles.capturedImageSmall}/>
+                        <Image source={{uri: capturedPhotos.front.uri}} style={styles.capturedImageBig}/>
+                        <Image source={{uri: capturedPhotos.back.uri}} style={styles.capturedImageSmall}/>
                     </View>
                     <View style={styles.buttonContainer}>
                         <Pressable style={styles.button} onPress={retakePicture}>
@@ -160,8 +170,7 @@ export default function CameraScreen() {
                     {flash && <View style={styles.flashOverlay}/>}
                     <View style={styles.buttonContainer}>
                         <Pressable style={styles.button} onPress={toggleFlash}>
-                            <Ionicons name={flashTriggered ? "flash-outline" : "flash-off-outline"} size={40}
-                                      color="white"/>
+                            <Ionicons name={flashTriggered ? "flash-outline" : "flash-off-outline"} size={40} color="white"/>
                         </Pressable>
                         <Pressable style={styles.captureButton} onPress={() => {
                             setIsCapturing(true);

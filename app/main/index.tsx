@@ -1,39 +1,29 @@
-import React, {useEffect, useState} from 'react';
-import {View, Text, StyleSheet, Image, FlatList, Pressable} from 'react-native';
-import { useCameraPermissions} from 'expo-camera';
-import {CameraType} from "expo-camera/legacy";
-import {useRouter} from "expo-router";
-import {AxiosError} from "axios";
-import {client} from "@/api/client";
-import {BlurView} from "expo-blur";
-import { FontAwesome} from "@expo/vector-icons";
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, FlatList, Pressable } from 'react-native';
+import { useCameraPermissions } from 'expo-camera';
+import { CameraType } from "expo-camera/legacy";
+import { useRouter } from "expo-router";
+import { AxiosError } from "axios";
+import { client } from "@/api/client";
+import { BlurView } from "expo-blur";
+import { FontAwesome } from "@expo/vector-icons";
 import * as Location from 'expo-location';
-import {LocationObject} from "expo-location";
+import { LocationObject } from "expo-location";
+import {BeReal} from "@/model/be-real";
 
-const initialData = [
-    { id: '111', name: 'Alicee', data: require('@/assets/images/react-logo.png') },
-    // Add more sample posts here
-];
-
-interface FeedItem {
-    id: string;
-    name: string;
-    data: any;
-}
 interface WholeBeReal {
-    data1: any,
-    data2: any
+    frontPhoto: BeReal;
+    backPhoto: BeReal;
 }
-
 
 export default function HomeScreen() {
     const [facing, setFacing] = useState(CameraType.front);
     const [permission, requestPermission] = useCameraPermissions();
-    const [feed, setFeed] = useState<FeedItem[]>(initialData);
+    const [feed, setFeed] = useState<BeReal[]>([]);
     const router = useRouter();
-    const [myBeReal, setMyBeReal] = useState<FeedItem[] |null>(null);
-    const [location, setLocation] = useState<LocationObject |null>(null);
-    const [locationName, setLocationName] = useState<string |null>(null);
+    const [myBeReal, setMyBeReal] = useState<WholeBeReal | null>(null);
+    const [location, setLocation] = useState<LocationObject | null>(null);
+    const [locationName, setLocationName] = useState<string | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -44,83 +34,94 @@ export default function HomeScreen() {
             }
             let location = await Location.getCurrentPositionAsync({});
             setLocation(location);
-            let locationName = await Location.reverseGeocodeAsync({latitude: location.coords.latitude, longitude: location.coords.longitude});
+            let locationName = await Location.reverseGeocodeAsync({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            });
             setLocationName(locationName[0].city + ", " + locationName[0].country);
         })();
-        client.get('photos/4')
-            .then(value => {
-                setFeed([value.data,value.data])
-                //setFeed(prevState => [...prevState, value.data])
-            }).catch((error: AxiosError) => {
-            alert(error);
-        });
-        client.get('photos/today/7')
-            .then(value => {
-                client.get('photos/today/8')
-                    .then(value2 => {
-                        setMyBeReal([value2.data,value.data])
-                    }).catch((error: AxiosError) => {
-                    alert(error);
-                });
-            }).catch((error: AxiosError) => {
-            alert(error);
-        });
 
+        // Fetching the feed data
+        client.get<BeReal[]>('bereals/feed/1')
+            .then(response => {
+                setFeed(response.data);
+                alert("Successfully fetched feed data!");
+            })
+            .catch((error: AxiosError) => {
+                alert(error);
+            });
+
+        // Fetching user's BeReal data
+        client.get<BeReal[]>('bereals/today/1')
+            .then(response => {
+                if (response.data.length === 2) {
+                    setMyBeReal({
+                        frontPhoto: response.data[0],
+                        backPhoto: response.data[1]
+                    });
+                }
+            })
+            .catch((error: AxiosError) => {
+                alert(error);
+            });
 
     }, []);
 
     const switchToCameraScreen = () => {
         router.push('/camera');
     }
-    const Post = ({ name, data, myBeRealIsTaken }: FeedItem & { myBeRealIsTaken: boolean }) => (
+
+    const Post = ({frontPhoto, backPhoto, myBeRealIsTaken,user }: BeReal & { myBeRealIsTaken: boolean }) => {
+        return (
         <View>
             <View style={styles.postUserContainer}>
-                <Image style={styles.profilePhoto}/>
-                <Text style={styles.postUser}>{name}</Text>
+                <Image style={styles.profilePhoto} />
+                <Text style={styles.postUser}>{user.nickname}</Text>
             </View>
             <View style={styles.imagesContainer}>
-                <Image source={typeof data === 'string' ? { uri: data } : data}
-                       style={styles.capturedImageBig}/>
-                <Image source={typeof data === 'string' ? { uri: data } : data}
-                       style={styles.capturedImageSmall}/>
+                <Image source={{ uri: `data:image/jpeg;base64,${frontPhoto}` }} style={styles.capturedImageBig} />
+                <Image source={{ uri: `data:image/jpeg;base64,${backPhoto}` }} style={styles.capturedImageSmall} />
                 {
                     !myBeRealIsTaken && (
                         <>
-                            <BlurView intensity={50} experimentalBlurMethod={"dimezisBlurView"} style={styles.blurOverlay}/>
-                                <Pressable style={styles.captureButton} onPress={switchToCameraScreen}>
-                                <Text style={{color: "white"}}>Take a BeReal</Text>
-                                </Pressable>
+                            <BlurView intensity={50} experimentalBlurMethod={"dimezisBlurView"} style={styles.blurOverlay} />
+                            <Pressable style={styles.captureButton} onPress={switchToCameraScreen}>
+                                <Text style={{ color: "white" }}>Take a BeReal</Text>
+                            </Pressable>
                         </>
                     )
                 }
             </View>
         </View>
     );
-    const MyPost = ({data1,data2 }:WholeBeReal) => (
+    }
+
+    const MyPost = ({ frontPhoto, backPhoto }: WholeBeReal) => {
+        return (
         <View>
             <View style={styles.postUserContainer}>
+                {/* Add user details here if needed */}
             </View>
             <View style={styles.myImagesContainer}>
-                <Image source={typeof data1 === 'string' ? { uri: data1 } : data2}
-                       style={styles.myCapturedImageBig}/>
-                <Image source={typeof data2 === 'string' ? { uri: data2 } : data2}
-                       style={styles.myCapturedImageSmall}/>
+                <Image source={{ uri: `data:image/jpeg;base64,${frontPhoto}` }} style={styles.capturedImageBig} />
+                <Image source={{ uri: `data:image/jpeg;base64,${backPhoto}` }} style={styles.capturedImageSmall} />
             </View>
-            <View style={{alignItems:"center"}}>
+            <View style={{ alignItems: "center" }}>
                 <Text style={styles.text}>Add a caption...</Text>
-                <View style={{flexDirection:"row",alignItems:"center"}}>
-                <Text style={styles.text}>{
-                    locationName
-                }
-                </Text>
-                    <View style={{width:8,height:8, marginHorizontal: 8,
-                        borderRadius: 4, backgroundColor:"white"}} />
-                <Text style={styles.text}>{new Date().toLocaleTimeString()}</Text>
-            </View>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text style={styles.text}>
+                        {locationName}
+                    </Text>
+                    <View style={{
+                        width: 8, height: 8, marginHorizontal: 8,
+                        borderRadius: 4, backgroundColor: "white"
+                    }} />
+                    <Text style={styles.text}>{new Date().toLocaleTimeString()}</Text>
                 </View>
+            </View>
         </View>
     );
-
+    }
 
     return (
         <View style={styles.container}>
@@ -128,23 +129,26 @@ export default function HomeScreen() {
                 <Text style={styles.headerText}>BeReal</Text>
             </View>
             <FlatList data={feed} renderItem={({ item }) => (
-                    <Post
-                        id={item.id}
-                        name={item.name}
-                        data={item.data}
-                        myBeRealIsTaken={!!myBeReal} // Conditionally blur images if myBeReal is not set
-                    />
-                )}
-                keyExtractor={(item) => item.id}
+                <Post
+                    beRealId={item.beRealId}
+                    frontPhoto={item.frontPhoto}
+                    backPhoto={item.backPhoto}
+                    myBeRealIsTaken={!!myBeReal}
+                    dateCreated={item.dateCreated}
+                    location={item.location}
+                    user={item.user}
+                />
+            )}
+                      keyExtractor={(item) => item.beRealId.toString()}
                       ListHeaderComponent={myBeReal && (
                           <MyPost
-                              data1={myBeReal[0].data}
-                              data2={myBeReal[1].data}
+                              frontPhoto={myBeReal.frontPhoto}
+                              backPhoto={myBeReal.backPhoto}
                           />
                       )}
             />
             <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
-            onPress={switchToCameraScreen}/>
+                         onPress={switchToCameraScreen} />
         </View>
     );
 }
@@ -191,7 +195,7 @@ const styles = StyleSheet.create({
         width: "99%",
         backgroundColor: '#fff',
         aspectRatio: 3 / 4,
-        transform: [{scaleX: -1}],
+        transform: [{ scaleX: -1 }],
     },
     capturedImageSmall: {
         backgroundColor: '#000',
@@ -201,7 +205,7 @@ const styles = StyleSheet.create({
         left: 30,
         width: "30%",
         aspectRatio: 3 / 4,
-        transform: [{scaleX: -1}],
+        transform: [{ scaleX: -1 }],
     },
     imagesContainer: {
         alignItems: 'center',
@@ -230,13 +234,15 @@ const styles = StyleSheet.create({
         width: "40%",
         aspectRatio: 3 / 4,
         alignSelf: 'center',
-    }, myCapturedImageBig: {
+    },
+    myCapturedImageBig: {
         borderRadius: 10,
         width: "99%",
         backgroundColor: '#fff',
         aspectRatio: 3 / 4,
-        transform: [{scaleX: -1}],
-    }, myCapturedImageSmall: {
+        transform: [{ scaleX: -1 }],
+    },
+    myCapturedImageSmall: {
         backgroundColor: '#000',
         borderRadius: 5,
         position: 'absolute',
@@ -244,12 +250,11 @@ const styles = StyleSheet.create({
         left: 10,
         width: "30%",
         aspectRatio: 3 / 4,
-        transform: [{scaleX: -1}],
+        transform: [{ scaleX: -1 }],
     },
     captureCircle: {
         bottom: 20,
         position: 'absolute',
         alignSelf: 'center',
     }
-
 });
