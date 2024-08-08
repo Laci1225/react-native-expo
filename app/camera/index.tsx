@@ -8,7 +8,7 @@ import {AntDesign, Feather} from "@expo/vector-icons";
 import {getBrightnessAsync, setBrightnessAsync} from "expo-brightness";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
-import {BeReal, BeRealInput} from "@/model/be-real";
+import {BeRealInput} from "@/model/be-real";
 
 interface PhotoData {
     uri: string;
@@ -53,7 +53,7 @@ export default function CameraScreen() {
                     setFlash(true);
 
                     const photo = await cameraRef.current?.takePictureAsync({
-                        quality: 1,
+                        quality: 0.4,
                         base64: true,
                     });
 
@@ -62,7 +62,7 @@ export default function CameraScreen() {
                             uri: photo.uri,
                             bytes: utf8Encode.encode(photo.base64 || '')
                         };
-                        handleCapturedPhoto(updatedPhoto);
+                            handleCapturedPhoto(updatedPhoto);
                     }
 
                     await setBrightnessAsync(originalBrightness ? originalBrightness : 0.5);
@@ -70,7 +70,7 @@ export default function CameraScreen() {
                 }, 100);
             } else {
                 const photo = await cameraRef.current?.takePictureAsync({
-                    quality: 1,
+                    quality: 0.5,
                     base64: true,
                 });
 
@@ -79,7 +79,7 @@ export default function CameraScreen() {
                         uri: photo.uri,
                         bytes: utf8Encode.encode(photo.base64 || '')
                     };
-                    handleCapturedPhoto(updatedPhoto);
+                        handleCapturedPhoto(updatedPhoto);
                 }
             }
         }
@@ -119,10 +119,9 @@ export default function CameraScreen() {
                     'Content-Type': 'application/json',
                 },
             }).then(() => {
-                alert('Photo uploaded successfully.')
                 router.push('/');
             }).catch((error: AxiosError) => {
-                alert('An error occurred while uploading the photo.');
+                alert('Failed to upload photo.');
                 console.log(error);
                 console.log(error.stack);
             });

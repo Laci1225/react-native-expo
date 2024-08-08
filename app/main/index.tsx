@@ -12,8 +12,8 @@ import { LocationObject } from "expo-location";
 import {BeReal} from "@/model/be-real";
 
 interface WholeBeReal {
-    frontPhoto: BeReal;
-    backPhoto: BeReal;
+    frontPhoto: Uint8Array;
+    backPhoto: Uint8Array;
 }
 
 export default function HomeScreen() {
@@ -26,6 +26,7 @@ export default function HomeScreen() {
     const [locationName, setLocationName] = useState<string | null>(null);
 
     useEffect(() => {
+
         (async () => {
             await requestPermission();
             let { status } = await Location.requestForegroundPermissionsAsync();
@@ -39,38 +40,38 @@ export default function HomeScreen() {
                 longitude: location.coords.longitude
             });
             setLocationName(locationName[0].city + ", " + locationName[0].country);
-        })();
-
+        })()
         // Fetching the feed data
-        client.get<BeReal[]>('bereals/feed/1')
+        client.get<BeReal[]>('bereals/feed/2')
             .then(response => {
                 setFeed(response.data);
-                alert("Successfully fetched feed data!");
             })
             .catch((error: AxiosError) => {
                 alert(error);
             });
 
-        // Fetching user's BeReal data
         client.get<BeReal[]>('bereals/today/1')
             .then(response => {
-                if (response.data.length === 2) {
-                    setMyBeReal({
-                        frontPhoto: response.data[0],
-                        backPhoto: response.data[1]
-                    });
-                }
+                setMyBeReal({
+                    frontPhoto: response.data[0].frontPhoto,
+                    backPhoto: response.data[0].backPhoto
+                });
             })
             .catch((error: AxiosError) => {
                 alert(error);
             });
-
     }, []);
 
     const switchToCameraScreen = () => {
         router.push('/camera');
     }
-
+    function uint8ArrayToBase64(uint8Array:Uint8Array) {
+        let binaryString = '';
+        for (let i = 0; i < uint8Array.length; i++) {
+            binaryString += String.fromCharCode(uint8Array[i]);
+        }
+        return binaryString;
+    }
     const Post = ({frontPhoto, backPhoto, myBeRealIsTaken,user }: BeReal & { myBeRealIsTaken: boolean }) => {
         return (
         <View>
@@ -79,8 +80,8 @@ export default function HomeScreen() {
                 <Text style={styles.postUser}>{user.nickname}</Text>
             </View>
             <View style={styles.imagesContainer}>
-                <Image source={{ uri: `data:image/jpeg;base64,${frontPhoto}` }} style={styles.capturedImageBig} />
-                <Image source={{ uri: `data:image/jpeg;base64,${backPhoto}` }} style={styles.capturedImageSmall} />
+                <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}` }} style={styles.capturedImageBig} />
+                <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}` }} style={styles.capturedImageSmall} />
                 {
                     !myBeRealIsTaken && (
                         <>
@@ -103,8 +104,8 @@ export default function HomeScreen() {
                 {/* Add user details here if needed */}
             </View>
             <View style={styles.myImagesContainer}>
-                <Image source={{ uri: `data:image/jpeg;base64,${frontPhoto}` }} style={styles.capturedImageBig} />
-                <Image source={{ uri: `data:image/jpeg;base64,${backPhoto}` }} style={styles.capturedImageSmall} />
+                    <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}` }} style={styles.myCapturedImageBig} />
+                    <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}` }} style={styles.myCapturedImageSmall} />
             </View>
             <View style={{ alignItems: "center" }}>
                 <Text style={styles.text}>Add a caption...</Text>
