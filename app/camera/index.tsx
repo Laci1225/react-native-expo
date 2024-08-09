@@ -9,6 +9,8 @@ import {getBrightnessAsync, setBrightnessAsync} from "expo-brightness";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
 import {BeRealInput} from "@/model/be-real";
+import * as Location from "expo-location";
+import {LocationObject} from "expo-location";
 
 interface PhotoData {
     uri: string;
@@ -32,6 +34,8 @@ export default function CameraScreen() {
     const [flashTriggered, setFlashTriggered] = useState(false);
     const [isCapturing, setIsCapturing] = useState(false);
     const router = useRouter();
+    const [location, setLocation] = useState<LocationObject | null>(null);
+    const [locationName, setLocationName] = useState<string | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -39,6 +43,13 @@ export default function CameraScreen() {
             if (status !== 'granted') {
                 alert('Camera permissions are required.');
             }
+            let location = await Location.getCurrentPositionAsync({});
+            setLocation(location);
+            let locationName = await Location.reverseGeocodeAsync({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude
+            });
+            setLocationName(locationName[0].city + ", " + locationName[0].country);
         })();
     }, []);
 
@@ -111,7 +122,7 @@ export default function CameraScreen() {
                 user: {userId: 1,phoneNumber:"string",birthDate:"2000-12-25",nickname:"string"}, // TODO: Replace with actual user data
                 frontPhoto: Array.from(capturedPhotos.front.bytes),
                 backPhoto: Array.from(capturedPhotos.back.bytes),
-                location: 'Unknown',
+                location: locationName ? locationName : "",
             };
 
             client.post('/bereals/upload', postData, {
