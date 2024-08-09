@@ -6,17 +6,17 @@ import {useRouter} from "expo-router";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
 import {BlurView} from "expo-blur";
-import {FontAwesome, FontAwesome5} from "@expo/vector-icons";
+import {Entypo, FontAwesome, FontAwesome5, MaterialIcons} from "@expo/vector-icons";
 import * as Location from 'expo-location';
 import {LocationObject} from 'expo-location';
 import {BeReal} from "@/model/be-real";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from "@expo/vector-icons/Ionicons";
+import BlurredBackground from "@/customComponents/BlurredBackground";
 
 
 interface WholeBeReal {
-    frontPhoto: Uint8Array;
-    backPhoto: Uint8Array;
+    myBeReal: BeReal;
 }
 
 export default function HomeScreen() {
@@ -24,7 +24,7 @@ export default function HomeScreen() {
     const [permission, requestPermission] = useCameraPermissions();
     const [feed, setFeed] = useState<BeReal[]>([]);
     const router = useRouter();
-    const [myBeReal, setMyBeReal] = useState<WholeBeReal | null>(null);
+    const [myBeReal, setMyBeReal] = useState<BeReal | null>(null);
     const [location, setLocation] = useState<LocationObject | null>(null);
     const [locationName, setLocationName] = useState<string | null>(null);
 
@@ -57,10 +57,7 @@ export default function HomeScreen() {
             let userId = await AsyncStorage.getItem('userId');
         client.get<BeReal[]>(`bereals/today/${userId}`)
             .then(response => {
-                setMyBeReal({
-                    frontPhoto: response.data[0].frontPhoto,
-                    backPhoto: response.data[0].backPhoto
-                });
+                setMyBeReal(response.data[0]);
             })
             .catch((error: AxiosError) => {
                 alert(error);
@@ -78,12 +75,24 @@ export default function HomeScreen() {
         }
         return binaryString;
     }
-    const Post = ({frontPhoto, backPhoto, myBeRealIsTaken,user }: BeReal & { myBeRealIsTaken: boolean }) => {
+    const Post = ({frontPhoto, backPhoto, user, dateCreated, myBeRealIsTaken}: BeReal & { myBeRealIsTaken: boolean }) => {
         return (
         <View>
             <View style={styles.postUserContainer}>
                 <Image style={styles.profilePhoto} />
-                <Text style={styles.postUser}>{user.nickname}</Text>
+                <View>
+                <Text style={styles.postNickname}>{user.nickname}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center"}}>
+                        <Text style={styles.text}>
+                            {locationName}
+                        </Text>
+                        <View style={{
+                            width: 8, height: 8, marginHorizontal: 8,
+                            borderRadius: 4, backgroundColor: "white"
+                        }} />
+                        <Text style={styles.text}>{new Date(dateCreated).toLocaleTimeString()}</Text>
+                    </View>
+                </View>
             </View>
             <View style={styles.imagesContainer}>
                 <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}` }} style={styles.capturedImageBig} />
@@ -103,7 +112,7 @@ export default function HomeScreen() {
     );
     }
 
-    const MyPost = ({ frontPhoto, backPhoto }: WholeBeReal) => {
+    const MyPost = ({frontPhoto,backPhoto,location,dateCreated}:BeReal) => {
         return (
         <View>
             <View style={styles.myPostFriendSuggestion}>
@@ -118,13 +127,18 @@ export default function HomeScreen() {
                 <Text style={styles.text}>Add a caption...</Text>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <Text style={styles.text}>
-                        {locationName}
+                        {location}
                     </Text>
                     <View style={{
                         width: 8, height: 8, marginHorizontal: 8,
                         borderRadius: 4, backgroundColor: "white"
                     }} />
-                    <Text style={styles.text}>{new Date().toLocaleTimeString()}</Text>
+                    <Text style={styles.text}>{new Date(dateCreated).toLocaleTimeString()}</Text>
+                </View>
+                <View style={{flexDirection: "row", alignItems: "center"}}>
+
+                <Entypo style={{marginRight: 15}} name="share" size={24} color="white"/>
+                <MaterialIcons name="person-add-alt-1" size={24} color="white"/>
                 </View>
             </View>
         </View>
@@ -133,6 +147,10 @@ export default function HomeScreen() {
 
     return (
         <View style={styles.container}>
+            <View>
+            {myBeReal && (
+                <BlurredBackground imageUri={`data:image/jpeg;base64,${uint8ArrayToBase64(myBeReal.backPhoto)}`} />
+            )}
             <View style={styles.header}>
                 <FontAwesome5 style={{width: "33%",}}
                     name="user-friends" size={24} color="white" />
@@ -143,27 +161,21 @@ export default function HomeScreen() {
                 <Ionicons
                           name="calendar-outline" size={24} color="white" />
                 <Image style={styles.profilePhoto} />
-
+                </View>
+            </View>
+                <View style={{marginBottom:5}}>
+            {myBeReal && (
+                <MyPost {...myBeReal}/>
+            )}
                 </View>
             </View>
             <FlatList data={feed} renderItem={({ item }) => (
                 <Post
-                    beRealId={item.beRealId}
-                    frontPhoto={item.frontPhoto}
-                    backPhoto={item.backPhoto}
+                    {...item}
                     myBeRealIsTaken={!!myBeReal}
-                    dateCreated={item.dateCreated}
-                    location={item.location}
-                    user={item.user}
                 />
             )}
                       keyExtractor={(item) => item.beRealId.toString()}
-                      ListHeaderComponent={myBeReal && (
-                          <MyPost
-                              frontPhoto={myBeReal.frontPhoto}
-                              backPhoto={myBeReal.backPhoto}
-                          />
-                      )}
             />
             <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
                          onPress={switchToCameraScreen} />
@@ -180,7 +192,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         marginHorizontal: 10,
-        height: "6%",
+        height: 60,
         justifyContent: 'space-between',
         alignItems: 'center',
     },
@@ -202,7 +214,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 40,
     },
-    postUser: {
+    postNickname: {
         color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
@@ -220,9 +232,11 @@ const styles = StyleSheet.create({
     capturedImageSmall: {
         backgroundColor: '#000',
         borderRadius: 15,
+        borderWidth: 1,
+        borderColor: '#000',
         position: 'absolute',
-        top: 30,
-        left: 30,
+        top: 20,
+        left: 20,
         width: "30%",
         aspectRatio: 3 / 4,
         transform: [{ scaleX: -1 }],
@@ -263,6 +277,8 @@ const styles = StyleSheet.create({
     },
     myCapturedImageBig: {
         borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#000',
         width: "99%",
         backgroundColor: '#fff',
         aspectRatio: 3 / 4,
@@ -271,6 +287,8 @@ const styles = StyleSheet.create({
     myCapturedImageSmall: {
         backgroundColor: '#000',
         borderRadius: 5,
+        borderWidth: 1,
+        borderColor: '#000',
         position: 'absolute',
         top: 10,
         left: 10,

@@ -6,7 +6,7 @@ export interface BeReal {
     frontPhoto: Uint8Array
     backPhoto: Uint8Array
     location?: string;
-    dateCreated: string;
+    dateCreated: Date;
 }
 export interface BeRealInput {
     user: User;
