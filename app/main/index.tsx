@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, FlatList, Pressable } from 'react-native';
-import { useCameraPermissions } from 'expo-camera';
-import { CameraType } from "expo-camera/legacy";
-import { useRouter } from "expo-router";
-import { AxiosError } from "axios";
-import { client } from "@/api/client";
-import { BlurView } from "expo-blur";
-import { FontAwesome } from "@expo/vector-icons";
+import React, {useEffect, useState} from 'react';
+import {FlatList, Image, Pressable, StyleSheet, Text, View} from 'react-native';
+import {useCameraPermissions} from 'expo-camera';
+import {CameraType} from "expo-camera/legacy";
+import {useRouter} from "expo-router";
+import {AxiosError} from "axios";
+import {client} from "@/api/client";
+import {BlurView} from "expo-blur";
+import {FontAwesome, FontAwesome5} from "@expo/vector-icons";
 import * as Location from 'expo-location';
-import { LocationObject } from "expo-location";
+import {LocationObject} from 'expo-location';
 import {BeReal} from "@/model/be-real";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Ionicons from "@expo/vector-icons/Ionicons";
+
 
 interface WholeBeReal {
     frontPhoto: Uint8Array;
@@ -40,6 +43,7 @@ export default function HomeScreen() {
                 longitude: location.coords.longitude
             });
             setLocationName(locationName[0].city + ", " + locationName[0].country);
+
         })()
         // Fetching the feed data
         client.get<BeReal[]>('bereals/feed/2')
@@ -49,8 +53,9 @@ export default function HomeScreen() {
             .catch((error: AxiosError) => {
                 alert(error);
             });
-
-        client.get<BeReal[]>('bereals/today/1')
+        (async () => {
+            let userId = await AsyncStorage.getItem('userId');
+        client.get<BeReal[]>(`bereals/today/${userId}`)
             .then(response => {
                 setMyBeReal({
                     frontPhoto: response.data[0].frontPhoto,
@@ -60,6 +65,7 @@ export default function HomeScreen() {
             .catch((error: AxiosError) => {
                 alert(error);
             });
+        })()
     }, []);
 
     const switchToCameraScreen = () => {
@@ -100,8 +106,9 @@ export default function HomeScreen() {
     const MyPost = ({ frontPhoto, backPhoto }: WholeBeReal) => {
         return (
         <View>
-            <View style={styles.postUserContainer}>
-                {/* Add user details here if needed */}
+            <View style={styles.myPostFriendSuggestion}>
+                <Text style={{color: "white",fontSize: 18}}>My friends</Text>
+                <Text style={{color: "white",fontSize: 18}}>Friend of my friends</Text>
             </View>
             <View style={styles.myImagesContainer}>
                     <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}` }} style={styles.myCapturedImageBig} />
@@ -127,7 +134,17 @@ export default function HomeScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerText}>BeReal</Text>
+                <FontAwesome5 style={{width: "33%",}}
+                    name="user-friends" size={24} color="white" />
+                <Text style={styles.headerText}>StayReal</Text>
+                <View style={{flexDirection: "row",
+                    width: "33%", justifyContent: "flex-end",
+                    alignItems: "center"}}>
+                <Ionicons
+                          name="calendar-outline" size={24} color="white" />
+                <Image style={styles.profilePhoto} />
+
+                </View>
             </View>
             <FlatList data={feed} renderItem={({ item }) => (
                 <Post
@@ -161,16 +178,18 @@ const styles = StyleSheet.create({
         backgroundColor: '#000000',
     },
     header: {
-        height: 60,
-        backgroundColor: '#fff',
-        justifyContent: 'center',
+        flexDirection: 'row',
+        marginHorizontal: 10,
+        height: "6%",
+        justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: '#ddd',
     },
     headerText: {
         fontSize: 24,
         fontWeight: 'bold',
+        color: '#fff',
+        width: "34%",
+        textAlign: 'center',
     },
     captureButton: {
         width: "80%",
@@ -219,6 +238,12 @@ const styles = StyleSheet.create({
         marginHorizontal: 10,
         borderRadius: 25,
         backgroundColor: '#fff',
+    },
+    myPostFriendSuggestion: {
+        flexDirection: 'row',
+        justifyContent: 'space-evenly',
+        marginBottom: 10,
+        marginHorizontal: "15%",
     },
     postUserContainer: {
         flexDirection: 'row',
