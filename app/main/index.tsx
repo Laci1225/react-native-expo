@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {FlatList, Image, Pressable, StyleSheet, Text, View} from 'react-native';
-import {useCameraPermissions} from 'expo-camera';
+import {FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {CameraType} from "expo-camera/legacy";
 import {useRouter} from "expo-router";
 import {AxiosError} from "axios";
@@ -8,42 +7,23 @@ import {client} from "@/api/client";
 import {BlurView} from "expo-blur";
 import {Entypo, FontAwesome, FontAwesome5, MaterialIcons} from "@expo/vector-icons";
 import * as Location from 'expo-location';
-import {LocationObject} from 'expo-location';
 import {BeReal} from "@/model/be-real";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import BlurredBackground from "@/customComponents/BlurredBackground";
 
-
-interface WholeBeReal {
-    myBeReal: BeReal;
-}
-
 export default function HomeScreen() {
-    const [facing, setFacing] = useState(CameraType.front);
-    const [permission, requestPermission] = useCameraPermissions();
     const [feed, setFeed] = useState<BeReal[]>([]);
     const router = useRouter();
     const [myBeReal, setMyBeReal] = useState<BeReal | null>(null);
-    const [location, setLocation] = useState<LocationObject | null>(null);
-    const [locationName, setLocationName] = useState<string | null>(null);
 
     useEffect(() => {
 
         (async () => {
-            await requestPermission();
-            let { status } = await Location.requestForegroundPermissionsAsync();
+            let {status} = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
                 return;
             }
-            let location = await Location.getCurrentPositionAsync({});
-            setLocation(location);
-            let locationName = await Location.reverseGeocodeAsync({
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude
-            });
-            setLocationName(locationName[0].city + ", " + locationName[0].country);
-
         })()
         // Fetching the feed data
         client.get<BeReal[]>('bereals/feed/2')
@@ -55,121 +35,131 @@ export default function HomeScreen() {
             });
         (async () => {
             let userId = await AsyncStorage.getItem('userId');
-        client.get<BeReal[]>(`bereals/today/${userId}`)
-            .then(response => {
-                setMyBeReal(response.data[0]);
-            })
-            .catch((error: AxiosError) => {
-                alert(error);
-            });
+            client.get<BeReal[]>(`bereals/today/${userId}`)
+                .then(response => {
+                    setMyBeReal(response.data[0]);
+                })
+                .catch((error: AxiosError) => {
+                    alert(error);
+                });
         })()
     }, []);
 
     const switchToCameraScreen = () => {
         router.push('/camera');
     }
-    function uint8ArrayToBase64(uint8Array:Uint8Array) {
+
+    function uint8ArrayToBase64(uint8Array: Uint8Array) {
         let binaryString = '';
         for (let i = 0; i < uint8Array.length; i++) {
             binaryString += String.fromCharCode(uint8Array[i]);
         }
         return binaryString;
     }
-    const Post = ({frontPhoto, backPhoto, user, dateCreated, myBeRealIsTaken}: BeReal & { myBeRealIsTaken: boolean }) => {
+
+    const Post = ({frontPhoto, backPhoto, user, dateCreated, location, myBeRealIsTaken}: BeReal & {
+        myBeRealIsTaken: boolean
+    }) => {
         return (
-        <View>
-            <View style={styles.postUserContainer}>
-                <Image style={styles.profilePhoto} />
-                <View>
-                <Text style={styles.postNickname}>{user.nickname}</Text>
-                    <View style={{ flexDirection: "row", alignItems: "center"}}>
+            <View>
+                <View style={styles.postUserContainer}>
+                    <Image style={styles.profilePhoto}/>
+                    <View>
+                        <Text style={styles.postNickname}>{user.nickname}</Text>
+                        <View style={{flexDirection: "row", alignItems: "center"}}>
+                            <Text style={styles.text}>
+                                {location}
+                            </Text>
+                            <View style={{
+                                width: 8, height: 8, marginHorizontal: 8,
+                                borderRadius: 4, backgroundColor: "white"
+                            }}/>
+                            <Text style={styles.text}>{new Date(dateCreated).toLocaleTimeString()}</Text>
+                        </View>
+                    </View>
+                </View>
+                <View style={styles.imagesContainer}>
+                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}`}}
+                           style={styles.capturedImageBig}/>
+                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}`}}
+                           style={styles.capturedImageSmall}/>
+                    {
+                        !myBeRealIsTaken && (
+                            <>
+                                <BlurView intensity={50} experimentalBlurMethod={"dimezisBlurView"}
+                                          style={styles.blurOverlay}/>
+                                <Pressable style={styles.captureButton} onPress={switchToCameraScreen}>
+                                    <Text style={{color: "white"}}>Take a BeReal</Text>
+                                </Pressable>
+                            </>
+                        )
+                    }
+                </View>
+            </View>
+        );
+    }
+
+    const MyPost = ({frontPhoto, backPhoto, location, dateCreated}: BeReal) => {
+        return (
+            <View style={{paddingTop: 70}}>
+                <View style={styles.myPostFriendSuggestion}>
+                    <Text style={{color: "white", fontSize: 18}}>My friends</Text>
+                    <Text style={{color: "white", fontSize: 18}}>Friend of my friends</Text>
+                </View>
+                <View style={styles.myImagesContainer}>
+                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}`}}
+                           style={styles.myCapturedImageBig}/>
+                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}`}}
+                           style={styles.myCapturedImageSmall}/>
+                </View>
+                <View style={{alignItems: "center"}}>
+                    <Text style={styles.text}>Add a caption...</Text>
+                    <View style={{flexDirection: "row", alignItems: "center"}}>
                         <Text style={styles.text}>
-                            {locationName}
+                            {location}
                         </Text>
                         <View style={{
                             width: 8, height: 8, marginHorizontal: 8,
                             borderRadius: 4, backgroundColor: "white"
-                        }} />
+                        }}/>
                         <Text style={styles.text}>{new Date(dateCreated).toLocaleTimeString()}</Text>
+                    </View>
+                    <View style={{flexDirection: "row", alignItems: "center"}}>
+
+                        <Entypo style={{marginRight: 15}} name="share" size={24} color="white"/>
+                        <MaterialIcons name="person-add-alt-1" size={24} color="white"/>
                     </View>
                 </View>
             </View>
-            <View style={styles.imagesContainer}>
-                <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}` }} style={styles.capturedImageBig} />
-                <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}` }} style={styles.capturedImageSmall} />
-                {
-                    !myBeRealIsTaken && (
-                        <>
-                            <BlurView intensity={50} experimentalBlurMethod={"dimezisBlurView"} style={styles.blurOverlay} />
-                            <Pressable style={styles.captureButton} onPress={switchToCameraScreen}>
-                                <Text style={{ color: "white" }}>Take a BeReal</Text>
-                            </Pressable>
-                        </>
-                    )
-                }
-            </View>
-        </View>
-    );
-    }
-
-    const MyPost = ({frontPhoto,backPhoto,location,dateCreated}:BeReal) => {
-        return (
-        <View>
-            <View style={styles.myPostFriendSuggestion}>
-                <Text style={{color: "white",fontSize: 18}}>My friends</Text>
-                <Text style={{color: "white",fontSize: 18}}>Friend of my friends</Text>
-            </View>
-            <View style={styles.myImagesContainer}>
-                    <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}` }} style={styles.myCapturedImageBig} />
-                    <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}` }} style={styles.myCapturedImageSmall} />
-            </View>
-            <View style={{ alignItems: "center" }}>
-                <Text style={styles.text}>Add a caption...</Text>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={styles.text}>
-                        {location}
-                    </Text>
-                    <View style={{
-                        width: 8, height: 8, marginHorizontal: 8,
-                        borderRadius: 4, backgroundColor: "white"
-                    }} />
-                    <Text style={styles.text}>{new Date(dateCreated).toLocaleTimeString()}</Text>
-                </View>
-                <View style={{flexDirection: "row", alignItems: "center"}}>
-
-                <Entypo style={{marginRight: 15}} name="share" size={24} color="white"/>
-                <MaterialIcons name="person-add-alt-1" size={24} color="white"/>
-                </View>
-            </View>
-        </View>
-    );
+        );
     }
 
     return (
         <View style={styles.container}>
-            <View>
-            {myBeReal && (
-                <BlurredBackground imageUri={`data:image/jpeg;base64,${uint8ArrayToBase64(myBeReal.backPhoto)}`} />
-            )}
             <View style={styles.header}>
-                <FontAwesome5 style={{width: "33%",}}
-                    name="user-friends" size={24} color="white" />
+                <FontAwesome5 style={{ width: "33%", }}
+                              name="user-friends" size={24} color="white" />
                 <Text style={styles.headerText}>StayReal</Text>
-                <View style={{flexDirection: "row",
+                <View style={{ flexDirection: "row",
                     width: "33%", justifyContent: "flex-end",
-                    alignItems: "center"}}>
-                <Ionicons
-                          name="calendar-outline" size={24} color="white" />
-                <Image style={styles.profilePhoto} />
+                    alignItems: "center" }}>
+                    <Ionicons
+                        name="calendar-outline" size={24} color="white" />
+                    <Image style={styles.profilePhoto} />
                 </View>
             </View>
-                <View style={{marginBottom:5}}>
-            {myBeReal && (
-                <MyPost {...myBeReal}/>
-            )}
-                </View>
-            </View>
-            <FlatList data={feed} renderItem={({ item }) => (
+            <ScrollView>
+                <View>
+                    {myBeReal && (
+                        <BlurredBackground imageUri={`data:image/jpeg;base64,${uint8ArrayToBase64(myBeReal.backPhoto)}`} />
+                    )}
+                    <View style={{marginBottom: 5}}>
+                        {myBeReal && (
+                            <MyPost {...myBeReal}/>
+                        )}
+                    </View>
+                    </View>
+            <FlatList data={feed} renderItem={({item}) => (
                 <Post
                     {...item}
                     myBeRealIsTaken={!!myBeReal}
@@ -177,10 +167,12 @@ export default function HomeScreen() {
             )}
                       keyExtractor={(item) => item.beRealId.toString()}
             />
-            <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
-                         onPress={switchToCameraScreen} />
-        </View>
-    );
+        </ScrollView>
+    <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
+                 onPress={switchToCameraScreen}/>
+</View>
+)
+    ;
 }
 
 const styles = StyleSheet.create({
@@ -190,11 +182,16 @@ const styles = StyleSheet.create({
         backgroundColor: '#000000',
     },
     header: {
+        position: 'absolute',
+        top: 10,
+        left: 0,
+        right: 0,
+        zIndex: 10,
         flexDirection: 'row',
         marginHorizontal: 10,
-        height: 60,
         justifyContent: 'space-between',
         alignItems: 'center',
+        backgroundColor: 'transparent', // No background
     },
     headerText: {
         fontSize: 24,
@@ -227,7 +224,7 @@ const styles = StyleSheet.create({
         width: "99%",
         backgroundColor: '#fff',
         aspectRatio: 3 / 4,
-        transform: [{ scaleX: -1 }],
+        transform: [{scaleX: -1}],
     },
     capturedImageSmall: {
         backgroundColor: '#000',
@@ -239,7 +236,7 @@ const styles = StyleSheet.create({
         left: 20,
         width: "30%",
         aspectRatio: 3 / 4,
-        transform: [{ scaleX: -1 }],
+        transform: [{scaleX: -1}],
     },
     imagesContainer: {
         alignItems: 'center',
@@ -282,7 +279,7 @@ const styles = StyleSheet.create({
         width: "99%",
         backgroundColor: '#fff',
         aspectRatio: 3 / 4,
-        transform: [{ scaleX: -1 }],
+        transform: [{scaleX: -1}],
     },
     myCapturedImageSmall: {
         backgroundColor: '#000',
@@ -294,7 +291,7 @@ const styles = StyleSheet.create({
         left: 10,
         width: "30%",
         aspectRatio: 3 / 4,
-        transform: [{ scaleX: -1 }],
+        transform: [{scaleX: -1}],
     },
     captureCircle: {
         bottom: 20,
