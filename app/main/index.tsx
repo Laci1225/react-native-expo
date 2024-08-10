@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import {FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
-import {CameraType} from "expo-camera/legacy";
 import {useRouter} from "expo-router";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
@@ -63,6 +62,8 @@ export default function HomeScreen() {
         return (
             <View>
                 <View style={styles.postUserContainer}>
+                    <View>
+
                     <Image style={styles.profilePhoto}/>
                     <View>
                         <Text style={styles.postNickname}>{user.nickname}</Text>
@@ -77,6 +78,9 @@ export default function HomeScreen() {
                             <Text style={styles.text}>{new Date(dateCreated).toLocaleTimeString()}</Text>
                         </View>
                     </View>
+                    </View>
+                    <Entypo style={{alignItems: "center"}}
+                            name="dots-three-vertical" size={24} color="white"/>
                 </View>
                 <View style={styles.imagesContainer}>
                     <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}`}}
@@ -137,42 +141,45 @@ export default function HomeScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <FontAwesome5 style={{ width: "33%", }}
-                              name="user-friends" size={24} color="white" />
+                <FontAwesome5 style={{width: "33%",}}
+                              name="user-friends" size={24} color="white"/>
                 <Text style={styles.headerText}>StayReal</Text>
-                <View style={{ flexDirection: "row",
+                <View style={{
+                    flexDirection: "row",
                     width: "33%", justifyContent: "flex-end",
-                    alignItems: "center" }}>
+                    alignItems: "center"
+                }}>
                     <Ionicons
-                        name="calendar-outline" size={24} color="white" />
-                    <Image style={styles.profilePhoto} />
+                        name="calendar-outline" size={24} color="white"/>
+                    <Image style={styles.profilePhoto}/>
                 </View>
             </View>
             <ScrollView>
                 <View>
                     {myBeReal && (
-                        <BlurredBackground imageUri={`data:image/jpeg;base64,${uint8ArrayToBase64(myBeReal.backPhoto)}`} />
+                        <BlurredBackground
+                            imageUri={`data:image/jpeg;base64,${uint8ArrayToBase64(myBeReal.backPhoto)}`}/>
                     )}
                     <View style={{marginBottom: 5}}>
                         {myBeReal && (
                             <MyPost {...myBeReal}/>
                         )}
                     </View>
-                    </View>
-            <FlatList data={feed} renderItem={({item}) => (
-                <Post
-                    {...item}
-                    myBeRealIsTaken={!!myBeReal}
+                </View>
+                <FlatList data={feed} renderItem={({item}) => (
+                    <Post
+                        {...item}
+                        myBeRealIsTaken={!!myBeReal}
+                    />
+                )}
+                          keyExtractor={(item) => item.beRealId.toString()}
                 />
-            )}
-                      keyExtractor={(item) => item.beRealId.toString()}
-            />
-        </ScrollView>
-    <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
-                 onPress={switchToCameraScreen}/>
-</View>
-)
-    ;
+            </ScrollView>
+            <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
+                         onPress={switchToCameraScreen}/>
+        </View>
+    )
+        ;
 }
 
 const styles = StyleSheet.create({
@@ -191,7 +198,6 @@ const styles = StyleSheet.create({
         marginHorizontal: 10,
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: 'transparent', // No background
     },
     headerText: {
         fontSize: 24,
@@ -261,6 +267,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginHorizontal: 10,
         marginVertical: 10,
+        justifyContent: "space-between"
     },
     blurOverlay: {
         ...StyleSheet.absoluteFillObject,
