@@ -9,6 +9,7 @@ import HomeScreen from "@/app/main";
 import CameraScreen from "@/app/camera";
 import {createStackNavigator} from "@react-navigation/stack";
 import LoginScreen from "@/app/login";
+import BeRealDetailsScreen from "@/app/myberealdetails";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -54,6 +55,7 @@ export default function RootLayout() {
                 initialRouteName={"login"}>
                 <Stack.Screen name="main" component={HomeScreen} options={{headerShown: false}}/>
                 <Stack.Screen name="login" component={LoginScreen} options={{headerShown: false}}/>
+                <Stack.Screen name="myberealdetails" component={BeRealDetailsScreen} options={{headerShown: false}}/>
                 <Stack.Screen name="camera" component={CameraScreen} options={{headerShown: false}}/>
             </Stack.Navigator>
         </ThemeProvider>

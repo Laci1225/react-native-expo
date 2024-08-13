@@ -10,6 +10,7 @@ import {BeReal} from "@/model/be-real";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import BlurredBackground from "@/customComponents/BlurredBackground";
+import {uint8ArrayToBase64} from "@/customComponents/uint8ArrayToBase64";
 
 export default function HomeScreen() {
     const [feed, setFeed] = useState<BeReal[]>([]);
@@ -48,13 +49,12 @@ export default function HomeScreen() {
         router.push('/camera');
     }
 
-    function uint8ArrayToBase64(uint8Array: Uint8Array) {
-        let binaryString = '';
-        for (let i = 0; i < uint8Array.length; i++) {
-            binaryString += String.fromCharCode(uint8Array[i]);
-        }
-        return binaryString;
-    }
+    const handlePressPost = (beReal: BeReal) => {
+        router.push({
+            pathname: '/myberealdetails',
+            params: { beReal: JSON.stringify(beReal) }
+        });
+    };
 
     const Post = ({frontPhoto, backPhoto, user, dateCreated, location, myBeRealIsTaken}: BeReal & {
         myBeRealIsTaken: boolean
@@ -103,7 +103,7 @@ export default function HomeScreen() {
         );
     }
 
-    const MyPost = ({frontPhoto, backPhoto, location, dateCreated}: BeReal) => {
+    const MyPost = ({beRealId, frontPhoto, backPhoto,user, location, dateCreated}: BeReal) => {
         return (
             <View style={{paddingTop: 70}}>
                 <View style={styles.myPostFriendSuggestion}>
@@ -111,10 +111,12 @@ export default function HomeScreen() {
                     <Text style={{color: "white", fontSize: 18}}>Friend of my friends</Text>
                 </View>
                 <View style={styles.myImagesContainer}>
-                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}`}}
-                           style={styles.myCapturedImageBig}/>
-                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}`}}
-                           style={styles.myCapturedImageSmall}/>
+                    <Pressable onPress={() => handlePressPost({ frontPhoto, backPhoto, user, dateCreated, location, beRealId})}>
+                        <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}` }}
+                               style={styles.capturedImageBig} />
+                        <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}` }}
+                               style={styles.capturedImageSmall} />
+                    </Pressable>
                 </View>
                 <View style={{alignItems: "center"}}>
                     <Text style={styles.text}>Add a caption...</Text>
@@ -166,6 +168,8 @@ export default function HomeScreen() {
                         )}
                     </View>
                 </View>
+                {
+                 feed.length == 0 ? <Text style={{color: "white", textAlign: "center", marginTop: 50}}>No posts yet</Text> :
                 <FlatList data={feed} renderItem={({item}) => (
                     <Post
                         {...item}
@@ -174,6 +178,7 @@ export default function HomeScreen() {
                 )}
                           keyExtractor={(item) => item.beRealId.toString()}
                 />
+                }
             </ScrollView>
             <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
                          onPress={switchToCameraScreen}/>
