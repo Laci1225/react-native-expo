@@ -8,7 +8,7 @@ import {AntDesign, Feather} from "@expo/vector-icons";
 import {getBrightnessAsync, setBrightnessAsync} from "expo-brightness";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
-import {BeRealInput} from "@/model/be-real";
+import {BeReal, BeRealInput} from "@/model/be-real";
 import * as Location from "expo-location";
 import {LocationObject} from "expo-location";
 
@@ -115,6 +115,13 @@ export default function CameraScreen() {
         setCapturedPhotos({front: null, back: null});
         setFacing(CameraType.front);
     };
+    const handlePhotoUploaded = (beReal: BeReal) => {
+        /*router.push({
+            pathname: '/main',
+            params: { beReal: JSON.stringify(beReal) }
+        });*/
+        router.push('/main');
+    };
 
     const publishPhoto = () => {
         if (capturedPhotos.front && capturedPhotos.back) {
@@ -125,12 +132,13 @@ export default function CameraScreen() {
                 location: locationName ? locationName : "",
             };
 
-            client.post('/bereals/upload', postData, {
+            client.post<BeReal>('/bereals/upload', postData, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-            }).then(() => {
-                router.push('/');
+            }).then( (value) => {
+                alert('Photo uploaded successfully.');
+                handlePhotoUploaded(value.data);
             }).catch((error: AxiosError) => {
                 alert('Failed to upload photo.');
                 console.log(error);

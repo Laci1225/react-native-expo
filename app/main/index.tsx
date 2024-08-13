@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {ActivityIndicator, FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useRouter} from "expo-router";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
@@ -16,6 +16,7 @@ export default function HomeScreen() {
     const [feed, setFeed] = useState<BeReal[]>([]);
     const router = useRouter();
     const [myBeReal, setMyBeReal] = useState<BeReal | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
 
@@ -41,7 +42,7 @@ export default function HomeScreen() {
                 })
                 .catch((error: AxiosError) => {
                     alert(error);
-                });
+                }).finally(() => setLoading(false));
         })()
     }, []);
 
@@ -52,7 +53,7 @@ export default function HomeScreen() {
     const handlePressPost = (beReal: BeReal) => {
         router.push({
             pathname: '/myberealdetails',
-            params: { beReal: JSON.stringify(beReal) }
+            //params: {beReal: JSON.stringify(beReal)}
         });
     };
 
@@ -62,30 +63,29 @@ export default function HomeScreen() {
         return (
             <View>
                 <View style={styles.postUserContainer}>
-                    <View>
-
-                    <Image style={styles.profilePhoto}/>
-                    <View>
-                        <Text style={styles.postNickname}>{user.nickname}</Text>
-                        <View style={{flexDirection: "row", alignItems: "center"}}>
-                            <Text style={styles.text}>
-                                {location}
-                            </Text>
-                            <View style={{
-                                width: 8, height: 8, marginHorizontal: 8,
-                                borderRadius: 4, backgroundColor: "white"
-                            }}/>
-                            <Text style={styles.text}>{new Date(dateCreated).toLocaleTimeString()}</Text>
+                    <View style={{flexDirection: "row"}}>
+                        <Image style={styles.profilePhoto}/>
+                        <View>
+                            <Text style={styles.postNickname}>{user.nickname}</Text>
+                            <View style={{flexDirection: "row", alignItems: "center"}}>
+                                <Text style={styles.text}>
+                                    {location}
+                                </Text>
+                                <View style={{
+                                    width: 8, height: 8, marginHorizontal: 8,
+                                    borderRadius: 4, backgroundColor: "white"
+                                }}/>
+                                <Text style={styles.text}>{new Date(dateCreated).toLocaleTimeString()}</Text>
+                            </View>
                         </View>
-                    </View>
                     </View>
                     <Entypo style={{alignItems: "center"}}
                             name="dots-three-vertical" size={24} color="white"/>
                 </View>
                 <View style={styles.imagesContainer}>
-                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}`}}
-                           style={styles.capturedImageBig}/>
                     <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}`}}
+                           style={styles.capturedImageBig}/>
+                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}`}}
                            style={styles.capturedImageSmall}/>
                     {
                         !myBeRealIsTaken && (
@@ -103,7 +103,7 @@ export default function HomeScreen() {
         );
     }
 
-    const MyPost = ({beRealId, frontPhoto, backPhoto,user, location, dateCreated}: BeReal) => {
+    const MyPost = ({beRealId, frontPhoto, backPhoto, user, location, dateCreated}: BeReal) => {
         return (
             <View style={{paddingTop: 70}}>
                 <View style={styles.myPostFriendSuggestion}>
@@ -111,11 +111,12 @@ export default function HomeScreen() {
                     <Text style={{color: "white", fontSize: 18}}>Friend of my friends</Text>
                 </View>
                 <View style={styles.myImagesContainer}>
-                    <Pressable onPress={() => handlePressPost({ frontPhoto, backPhoto, user, dateCreated, location, beRealId})}>
-                        <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}` }}
-                               style={styles.capturedImageBig} />
-                        <Image source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}` }}
-                               style={styles.capturedImageSmall} />
+                    <Pressable
+                        onPress={() => handlePressPost({frontPhoto, backPhoto, user, dateCreated, location, beRealId})}>
+                        <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}`}}
+                               style={styles.myCapturedImageBig}/>
+                        <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}`}}
+                               style={styles.myCapturedImageSmall}/>
                     </Pressable>
                 </View>
                 <View style={{alignItems: "center"}}>
@@ -136,6 +137,13 @@ export default function HomeScreen() {
                         <MaterialIcons name="person-add-alt-1" size={24} color="white"/>
                     </View>
                 </View>
+            </View>
+        );
+    }
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#fff" />
             </View>
         );
     }
@@ -169,15 +177,17 @@ export default function HomeScreen() {
                     </View>
                 </View>
                 {
-                 feed.length == 0 ? <Text style={{color: "white", textAlign: "center", marginTop: 50}}>No posts yet</Text> :
-                <FlatList data={feed} renderItem={({item}) => (
-                    <Post
-                        {...item}
-                        myBeRealIsTaken={!!myBeReal}
-                    />
-                )}
-                          keyExtractor={(item) => item.beRealId.toString()}
-                />
+                    feed.length == 0 ?
+                        <Text style={{color: "white", textAlign: "center", marginTop: 50}}>No posts yet</Text> :
+                        <FlatList data={feed} renderItem={({item}) => (
+                            <Post
+                                {...item}
+                                myBeRealIsTaken={!!myBeReal}
+                            />
+                        )}
+                                  keyExtractor={(item) => item.beRealId.toString()}
+                                  style={{marginTop: myBeReal ? 0 : 40}}
+                        />
                 }
             </ScrollView>
             <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
@@ -309,5 +319,11 @@ const styles = StyleSheet.create({
         bottom: 20,
         position: 'absolute',
         alignSelf: 'center',
-    }
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#000',
+    },
 });
