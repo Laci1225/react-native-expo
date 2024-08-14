@@ -55,6 +55,9 @@ const LoginScreen = () => {
 
     useEffect(() => {
         checkLoginStatus();
+        if (isLoggedIn) {
+            router.push('/main');
+        }
     }, []);
 
     return (

@@ -1,17 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import {Image, StyleSheet, Text, View, ScrollView, ActivityIndicator} from 'react-native';
-import { useRouter, useGlobalSearchParams } from 'expo-router';
-import { BeReal } from '@/model/be-real';
-import { uint8ArrayToBase64 } from "@/customComponents/uint8ArrayToBase64";
+import React, {useEffect, useState} from 'react';
+import {
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
+} from 'react-native';
+import {useRouter} from 'expo-router';
+import {BeReal} from '@/model/be-real';
+import {uint8ArrayToBase64} from "@/customComponents/uint8ArrayToBase64";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { client } from "@/api/client";
-import { AxiosError } from "axios";
+import {client} from "@/api/client";
+import {AxiosError} from "axios";
+import {Entypo, FontAwesome} from "@expo/vector-icons";
 
 export default function BeRealDetailsScreen() {
-    //const { beReal } = useGlobalSearchParams();
     const router = useRouter();
     const [myBeReal, setMyBeReal] = useState<BeReal>();
     const [loading, setLoading] = useState(true);
+    const [isSwapped, setIsSwapped] = useState(false);
+
     useEffect(() => {
         (async () => {
             let userId = await AsyncStorage.getItem('userId');
@@ -20,19 +32,19 @@ export default function BeRealDetailsScreen() {
                 return;
             }
 
-                client.get<BeReal[]>(`bereals/today/${userId}`)
-                    .then(response => {
-                        if (response.data && response.data.length > 0) {
-                            setMyBeReal(response.data[0]);
-                        } else {
-                            router.push('/main');
-                        }
-                    })
-                    .catch((error: AxiosError) => {
-                        console.error('Error fetching myBeReal:', error);
+            client.get<BeReal[]>(`bereals/today/${userId}`)
+                .then(response => {
+                    if (response.data && response.data.length > 0) {
+                        setMyBeReal(response.data[0]);
+                    } else {
                         router.push('/main');
-                    })
-                    .finally(() => setLoading(false));
+                    }
+                })
+                .catch((error: AxiosError) => {
+                    console.error('Error fetching myBeReal:', error);
+                    router.push('/main');
+                })
+                .finally(() => setLoading(false));
 
         })();
     }, []);
@@ -40,37 +52,105 @@ export default function BeRealDetailsScreen() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#fff" />
+                <ActivityIndicator size="large" color="#fff"/>
             </View>
         );
     }
-
 
     if (!myBeReal) {
         router.push('/main');
         return null;
     }
 
-    // If beReal param is passed, use that data, otherwise use fetched myBeReal data
-    //const beRealData: BeReal = beReal ? JSON.parse(beReal as string) : myBeReal;
+    const handleImagePress = () => {
+        setIsSwapped(!isSwapped);
+    };
 
     return (
         <ScrollView style={styles.container}>
+            <View style={{paddingHorizontal: 10}}>
             <View style={styles.header}>
-                <Text style={styles.headerText}>BeReal Details</Text>
+                <Entypo style={{width: "15%"}} name="chevron-left" size={24} color="white"
+                        onPress={() => router.back()}/>
+                <View style={{width: "70%", alignItems: "center"}}>
+                    <Text style={styles.headerText}>My BeReal.</Text>
+                    <View>
+                        <Text
+                            style={styles.headerSmallerText}>Date: {new Date(myBeReal.dateCreated).toLocaleString()}</Text>
+                    </View>
+                </View>
+                <View style={{width: "15%", flexDirection: "row"}}>
+                    <Entypo style={{marginRight: 15}} name="share" size={24} color="white"/>
+                    <Entypo name="dots-three-vertical" size={24} color="white"/>
+                </View>
             </View>
             <View style={styles.imagesContainer}>
-                <Image
-                    source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(myBeReal.backPhoto)}` }}
-                    style={styles.capturedImageBig}
+                <View style={styles.imageWrapper}>
+                    <Image
+                        source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(isSwapped ? myBeReal.frontPhoto : myBeReal.backPhoto)}`}}
+                        style={styles.capturedImageBig}
+                    />
+                    <Pressable onPress={handleImagePress} style={styles.touchableWrapper}>
+                        <Image
+                            source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(isSwapped ? myBeReal.backPhoto : myBeReal.frontPhoto)}`}}
+                            style={styles.capturedImageSmall}
+                        />
+                    </Pressable>
+                </View>
+                <Text style={{color: "white", marginTop: 20, fontSize: 16, fontWeight: "bold"}}>Add caption...</Text>
+                <Text style={{color: "grey", marginVertical: 5}}>Only visible to your friends</Text>
+                <View style={{
+                    backgroundColor: "rgba(80,80,80,0.5)", flexDirection: "row", marginTop: 5,
+                    paddingHorizontal: 15, paddingVertical: 4, borderRadius: 25, alignItems: "center"
+                }}>
+                    <FontAwesome name="location-arrow" size={24} color="white"/>
+                    <Text style={{color: "white", paddingLeft: 8}}>{myBeReal.location}</Text>
+                </View>
+            </View>
+            <View style={{borderBottomColor: 'gray', borderBottomWidth: 1, marginVertical: 15}}/>
+            <View>
+                {
+                    // reaction section with round pictures now with sample white pics with FlatList
+                }
+                <FlatList data={[1, 2, 3, 4]} renderItem={
+                    ({item}) => (
+                        <Image source={require('@/assets/images/icon.png')}
+                               style={{width: 65, height: 65, borderRadius: 50, marginHorizontal: 5}}/>
+                    )
+                }
+                          style={{paddingHorizontal: 5}} horizontal={true}
                 />
-                <Image
-                    source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(myBeReal.frontPhoto)}` }}
-                    style={styles.capturedImageSmall}
+            </View>
+            </View>
+            <View style={{borderBottomColor: 'gray', borderBottomWidth: 1, marginVertical: 15}}/>
+            <View>
+                <FlatList data={[1, 2]} renderItem={
+                    ({item}) => (
+                        <View style={{flexDirection: "row", marginVertical: 5}}>
+                            <Image source={require('@/assets/images/icon.png')}
+                                   style={{width: 50, height: 50, borderRadius: 25, marginHorizontal: 5}}/>
+                            <Text style={{color: "white"}}>Comment</Text>
+                        </View>
+                    )
+                }
+                          style={{paddingHorizontal: 5}}/>
+            </View>
+            <View style={{
+                position: "absolute",
+                bottom: 50,
+                borderColor: "white",
+                borderWidth: 1,
+                width: "100%",
+                height: 50
+            }}>
+                <TextInput
+                    placeholder="Add a comment..."
+                    style={{justifyContent: "center", padding: 10, width: "100%", height: "100%", fontSize: 16,}}
+                    value={""}
+                    onChangeText={() => {
+                    }}
                 />
-                <Text style={styles.text}>User: {myBeReal.user.nickname}</Text>
-                <Text style={styles.text}>Location: {myBeReal.location}</Text>
-                <Text style={styles.text}>Date: {new Date(myBeReal.dateCreated).toLocaleString()}</Text>
+
             </View>
         </ScrollView>
     );
@@ -80,46 +160,52 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#000',
-        padding: 16,
+        paddingTop: 16,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         marginBottom: 16,
     },
     headerText: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 20,
         color: '#fff',
-        marginLeft: 16,
     },
     imagesContainer: {
         alignItems: 'center',
-        marginVertical: 5,
+        marginTop: 5,
+        marginBottom: 10,
         marginHorizontal: 10,
+    },
+    imageWrapper: {
+        width: '100%',
+        alignItems: 'center',
     },
     capturedImageBig: {
         borderRadius: 25,
         width: "99%",
         backgroundColor: '#fff',
         aspectRatio: 3 / 4,
-        transform: [{ scaleX: -1 }],
+        transform: [{scaleX: -1}],
     },
-    capturedImageSmall: {
-        backgroundColor: '#000',
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: '#000',
+    touchableWrapper: {
         position: 'absolute',
         top: 20,
         left: 20,
         width: "30%",
-        aspectRatio: 3 / 4,
-        transform: [{ scaleX: -1 }],
     },
-    text: {
+    capturedImageSmall: {
+        backgroundColor: '#000',
+        borderRadius: 15,
+        borderWidth: 2,
+        borderColor: '#000',
+        aspectRatio: 3 / 4,
+        transform: [{scaleX: -1}],
+    },
+    headerSmallerText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: 14,
         marginVertical: 4,
     },
     loadingContainer: {

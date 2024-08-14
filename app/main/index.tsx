@@ -17,6 +17,7 @@ export default function HomeScreen() {
     const router = useRouter();
     const [myBeReal, setMyBeReal] = useState<BeReal | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isSwapped, setIsSwapped] = useState(false);
 
     useEffect(() => {
 
@@ -41,6 +42,7 @@ export default function HomeScreen() {
                     setMyBeReal(response.data[0]);
                 })
                 .catch((error: AxiosError) => {
+                    //alert out the cause of the error
                     alert(error);
                 }).finally(() => setLoading(false));
         })()
@@ -55,6 +57,9 @@ export default function HomeScreen() {
             pathname: '/myberealdetails',
             //params: {beReal: JSON.stringify(beReal)}
         });
+    };
+    const handleImagePress = () => {
+        setIsSwapped(!isSwapped);
     };
 
     const Post = ({frontPhoto, backPhoto, user, dateCreated, location, myBeRealIsTaken}: BeReal & {
@@ -83,10 +88,18 @@ export default function HomeScreen() {
                             name="dots-three-vertical" size={24} color="white"/>
                 </View>
                 <View style={styles.imagesContainer}>
-                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(backPhoto)}`}}
-                           style={styles.capturedImageBig}/>
-                    <Image source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(frontPhoto)}`}}
-                           style={styles.capturedImageSmall}/>
+                    <View style={styles.imageWrapper}>
+                        <Image
+                            source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(isSwapped ? frontPhoto : backPhoto)}` }}
+                            style={styles.capturedImageBig}
+                        />
+                        <Pressable onPress={handleImagePress} style={styles.touchableWrapper}>
+                            <Image
+                                source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(isSwapped ? backPhoto : frontPhoto)}` }}
+                                style={styles.capturedImageSmall}
+                            />
+                        </Pressable>
+                    </View>
                     {
                         !myBeRealIsTaken && (
                             <>
@@ -252,10 +265,8 @@ const styles = StyleSheet.create({
         borderRadius: 15,
         borderWidth: 1,
         borderColor: '#000',
+        width: "100%",
         position: 'absolute',
-        top: 20,
-        left: 20,
-        width: "30%",
         aspectRatio: 3 / 4,
         transform: [{scaleX: -1}],
     },
@@ -325,5 +336,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#000',
+    },
+    touchableWrapper: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        width: "30%",
+    },
+    imageWrapper: {
+        width: '100%',
+        alignItems: 'center',
     },
 });
