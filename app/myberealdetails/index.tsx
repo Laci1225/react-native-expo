@@ -1,14 +1,14 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     ActivityIndicator,
+    Animated,
     FlatList,
     Image,
     Pressable,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
-    View
+    View,
 } from 'react-native';
 import {useRouter} from 'expo-router';
 import {BeReal} from '@/model/be-real';
@@ -23,6 +23,9 @@ export default function BeRealDetailsScreen() {
     const [myBeReal, setMyBeReal] = useState<BeReal>();
     const [loading, setLoading] = useState(true);
     const [isSwapped, setIsSwapped] = useState(false);
+
+    // Animated value for scroll
+    const scrollY = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         (async () => {
@@ -66,27 +69,45 @@ export default function BeRealDetailsScreen() {
         setIsSwapped(!isSwapped);
     };
 
+    // Interpolated values for dynamic resizing
+    const imageContainerHeight = scrollY.interpolate({
+        inputRange: [0, 100],
+        outputRange: [450, 300],
+        extrapolate: "clamp",
+    });
+
+    const imageScale = scrollY.interpolate({
+        inputRange: [0, 100],
+        outputRange: [1, 0.35],
+        extrapolate: "clamp",
+    });
+
     return (
         <View style={styles.container}>
-            <ScrollView style={styles.container}>
-                <View style={{paddingHorizontal: 10}}>
-                    <View style={styles.header}>
-                        <Entypo style={{width: "15%"}} name="chevron-left" size={24} color="white"
-                                onPress={() => router.back()}/>
-                        <View style={{width: "70%", alignItems: "center"}}>
-                            <Text style={styles.headerText}>My BeReal.</Text>
-                            <View>
-                                <Text
-                                    style={styles.headerSmallerText}>Date: {new Date(myBeReal.dateCreated).toLocaleString()}</Text>
-                            </View>
-                        </View>
-                        <View style={{width: "15%", flexDirection: "row"}}>
-                            <Entypo style={{marginRight: 15}} name="share" size={24} color="white"/>
-                            <Entypo name="dots-three-vertical" size={24} color="white"/>
-                        </View>
+            <View style={styles.header}>
+                <Entypo style={{width: "15%"}} name="chevron-left" size={24} color="white"
+                        onPress={() => router.back()}/>
+                <View style={{width: "70%", alignItems: "center"}}>
+                    <Text style={styles.headerText}>My BeReal.</Text>
+                    <View>
+                        <Text
+                            style={styles.headerSmallerText}>Date: {new Date(myBeReal.dateCreated).toLocaleString()}</Text>
                     </View>
-                    <View style={styles.imagesContainer}>
-                        <View style={styles.imageWrapper}>
+                </View>
+                <View style={{width: "15%", flexDirection: "row"}}>
+                    <Entypo style={{marginRight: 15}} name="share" size={24} color="white"/>
+                    <Entypo name="dots-three-vertical" size={24} color="white"/>
+                </View>
+            </View>
+            <Animated.ScrollView
+                onScroll={Animated.event(
+                    [{nativeEvent: {contentOffset: {y: scrollY}}}],
+                    {useNativeDriver: false}
+                )}
+            >
+                <View>
+                    <Animated.View style={[styles.imagesContainer, {height: imageContainerHeight}]}>
+                        <Animated.View style={[styles.imageWrapper, {transform: [{scale: imageScale}]}]}>
                             <Image
                                 source={{uri: `data:image/jpeg;base64,${uint8ArrayToBase64(isSwapped ? myBeReal.frontPhoto : myBeReal.backPhoto)}`}}
                                 style={styles.capturedImageBig}
@@ -97,65 +118,55 @@ export default function BeRealDetailsScreen() {
                                     style={styles.capturedImageSmall}
                                 />
                             </Pressable>
-                        </View>
-                        <Text style={{color: "white", marginTop: 20, fontSize: 16, fontWeight: "bold"}}>Add
-                            caption...</Text>
-                        <Text style={{color: "grey", marginVertical: 5}}>Only visible to your friends</Text>
-                        <View style={{
-                            backgroundColor: "rgba(80,80,80,0.5)", flexDirection: "row", marginTop: 5,
-                            paddingHorizontal: 15, paddingVertical: 4, borderRadius: 25, alignItems: "center"
-                        }}>
-                            <FontAwesome name="location-arrow" size={24} color="white"/>
-                            <Text style={{color: "white", paddingLeft: 8}}>{myBeReal.location}</Text>
-                        </View>
-                    </View>
-                    <View style={{borderBottomColor: 'gray', borderBottomWidth: 1, marginVertical: 15}}/>
-                    <View>
-                        <FlatList data={[1, 2, 3, 4]} renderItem={
-                            ({item}) => (
-                                <Image source={require('@/assets/images/icon.png')}
-                                       style={{width: 65, height: 65, borderRadius: 50, marginHorizontal: 5}}/>
-                            )
-                        }
-                                  style={{paddingHorizontal: 5}} horizontal={true}
-                        />
-                    </View>
-                </View>
-                <View style={{borderBottomColor: 'gray', borderBottomWidth: 1, marginVertical: 15}}/>
-                <View>
-                    <FlatList data={[1, 2]} renderItem={
-                        ({item}) => (
-                            <View style={{flexDirection: "row", marginVertical: 5}}>
-                                <Image source={require('@/assets/images/icon.png')}
-                                       style={{width: 50, height: 50, borderRadius: 25, marginHorizontal: 5}}/>
-                                <Text style={{color: "white"}}>Comment</Text>
+                        </Animated.View>
+                    </Animated.View>
+                        <View style={styles.detailsContainer}>
+                            <Text style={styles.captionText}>Add caption...</Text>
+                            <Text style={styles.visibilityText}>Only visible to your friends</Text>
+                            <View style={styles.locationContainer}>
+                                <FontAwesome name="location-arrow" size={24} color="white"/>
+                                <Text style={styles.locationText}>{myBeReal.location}</Text>
                             </View>
-                        )
-                    }
-                              style={{paddingHorizontal: 5}}/>
+                        </View>
+                    <View style={styles.separator}/>
+                    <FlatList
+                        data={[1, 2, 3, 4]}
+                        renderItem={({item}) => (
+                            <Image
+                                source={require('@/assets/images/icon.png')}
+                                style={styles.profileImage}
+                            />
+                        )}
+                        style={styles.flatList}
+                        horizontal={true}
+                    />
+                    <View style={styles.separator}/>
+                    <FlatList
+                        data={[1, 2, 3, 4, 5]}
+                        renderItem={({item}) => (
+                            <View style={styles.commentContainer}>
+                                <Image
+                                    source={require('@/assets/images/icon.png')}
+                                    style={styles.commentImage}
+                                />
+                                <Text style={styles.commentText}>Comment</Text>
+                            </View>
+                        )}
+                        style={styles.flatList}
+                    />
                 </View>
-
-            </ScrollView>
-            <View style={{
-                position: "absolute",
-                bottom: 0,
-                width: "100%",
-                height: 50,
-                backgroundColor: "black",
-            }}>
-                <View style={{borderBottomColor: 'gray', borderBottomWidth: 1}}/>
-            <View style={{flexDirection:"row", justifyContent: "space-between", alignItems: "center"}}>
-            <TextInput
-                placeholder="Add a comment..."
-                placeholderTextColor={"rgba(100,100,100,1)"}
-                style={{fontSize: 22, color: "white", paddingHorizontal: 20, height: 40, width: "90%"}}
-                onChangeText={() => {
-                }}
-            />
-                <MaterialCommunityIcons name="send-circle" size={40} color="blue" />
-
-            </View>
-
+            </Animated.ScrollView>
+            <View style={styles.footer}>
+                <View style={styles.commentInputContainer}>
+                    <TextInput
+                        placeholder="Add a comment..."
+                        placeholderTextColor={"rgba(100,100,100,1)"}
+                        style={styles.commentInput}
+                        onChangeText={() => {
+                        }}
+                    />
+                    <MaterialCommunityIcons name="send-circle" size={40} color="blue"/>
+                </View>
             </View>
         </View>
     );
@@ -165,7 +176,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#000',
-        paddingTop: 5,
+        paddingHorizontal: 10,
+        paddingTop: 30,
     },
     header: {
         flexDirection: 'row',
@@ -218,5 +230,81 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#000',
+    },
+    detailsContainer: {
+        paddingHorizontal: 10,
+        alignItems: 'center',
+    },
+    captionText: {
+        color: "white",
+        marginTop: 20,
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    visibilityText: {
+        color: "grey",
+        marginVertical: 5,
+    },
+    locationContainer: {
+        backgroundColor: "rgba(80,80,80,0.5)",
+        flexDirection: "row",
+        marginTop: 5,
+        paddingHorizontal: 15,
+        paddingVertical: 4,
+        borderRadius: 25,
+        alignItems: "center",
+    },
+    locationText: {
+        color: "white",
+        paddingLeft: 8,
+    },
+    separator: {
+        borderBottomColor: 'gray',
+        borderBottomWidth: 1,
+        marginVertical: 15,
+    },
+    flatList: {
+        paddingHorizontal: 5,
+        marginBottom: 50
+    },
+    profileImage: {
+        width: 65,
+        height: 65,
+        borderRadius: 50,
+        marginHorizontal: 5,
+    },
+    commentContainer: {
+        flexDirection: "row",
+        marginVertical: 5,
+    },
+    commentImage: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        marginHorizontal: 5,
+    },
+    commentText: {
+        color: "white",
+    },
+    footer: {
+        position: "absolute",
+        bottom: 0,
+        backgroundColor: "black",
+        width: "103%", //todo malfunction
+        borderTopWidth: 1,
+        borderColor: "grey",
+        paddingTop: 5
+    },
+    commentInputContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    commentInput: {
+        fontSize: 22,
+        color: "white",
+        paddingHorizontal: 20,
+        height: 40,
+        width: "90%",
     },
 });
