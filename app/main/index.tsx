@@ -4,7 +4,7 @@ import {useRouter} from "expo-router";
 import {AxiosError} from "axios";
 import {client} from "@/api/client";
 import {BlurView} from "expo-blur";
-import {Entypo, FontAwesome, FontAwesome5, MaterialIcons} from "@expo/vector-icons";
+import {AntDesign, Entypo, FontAwesome, FontAwesome5, MaterialCommunityIcons, MaterialIcons} from "@expo/vector-icons";
 import * as Location from 'expo-location';
 import {BeReal} from "@/model/be-real";
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -99,6 +99,12 @@ export default function HomeScreen() {
                                 style={styles.capturedImageSmall}
                             />
                         </Pressable>
+                        {//an absolute comment icon and under that a dotted circle with a + icon inside}
+                        }
+                    </View>
+                    <View style={{position: "absolute", bottom: 0, right: 0, marginRight: 20, marginBottom: 25}}>
+                        <MaterialCommunityIcons style={{marginVertical:20}} name="comment" size={28} color="white" />
+                        <AntDesign name="smile-circle" size={24} color="white" />
                     </View>
                     {
                         !myBeRealIsTaken && (
@@ -112,6 +118,14 @@ export default function HomeScreen() {
                         )
                     }
                 </View>
+                <View style={{flexDirection: "row", height: 40, marginHorizontal: 10, alignItems: "center"}}>
+                    <Image
+                        source={require('@/assets/images/icon.png')}
+                        style={{width: 30, height: 30, borderRadius: 15, marginHorizontal: 10, marginVertical: 5}}
+                    />
+                    <Text style={{color: "grey", lineHeight: 40}}>Add a comment...</Text>
+                </View>
+
             </View>
         );
     }
@@ -202,6 +216,9 @@ export default function HomeScreen() {
                                   style={{marginTop: myBeReal ? 0 : 40}}
                         />
                 }
+            <View>
+                    <Text style={{color: "white", textAlign: "center", marginTop: 30, marginBottom: 20}}>End of BeReals</Text>
+            </View>
             </ScrollView>
             <FontAwesome name="circle-thin" style={styles.captureCircle} size={80} color="white"
                          onPress={switchToCameraScreen}/>
