@@ -58,77 +58,102 @@ export default function HomeScreen() {
             //params: {beReal: JSON.stringify(beReal)}
         });
     };
-    const handleImagePress = () => {
+    const handleSmallerImagePress = () => {
         setIsSwapped(!isSwapped);
     };
 
-    const Post = ({frontPhoto, backPhoto, user, dateCreated, location, myBeRealIsTaken}: BeReal & {
-        myBeRealIsTaken: boolean
-    }) => {
+    const Post = ({ frontPhoto, backPhoto, user, dateCreated, location, myBeRealIsTaken }: BeReal & { myBeRealIsTaken: boolean }) => {
+        const [showReactions, setShowReactions] = useState(false);
+
+        const handleBiggerImagePress = () => {
+            if (showReactions) {
+                setShowReactions(false);
+            }
+        };
+
+        const handleSmilePress = () => {
+            setShowReactions(true);
+        };
+
         return (
             <View>
                 <View style={styles.postUserContainer}>
-                    <View style={{flexDirection: "row"}}>
-                        <Image style={styles.profilePhoto}/>
+                    <View style={{ flexDirection: "row" }}>
+                        <Image style={styles.profilePhoto} />
                         <View>
                             <Text style={styles.postNickname}>{user.nickname}</Text>
-                            <View style={{flexDirection: "row", alignItems: "center"}}>
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
                                 <Text style={styles.text}>
                                     {location}
                                 </Text>
                                 <View style={{
                                     width: 8, height: 8, marginHorizontal: 8,
                                     borderRadius: 4, backgroundColor: "white"
-                                }}/>
+                                }} />
                                 <Text style={styles.text}>{new Date(dateCreated).toLocaleTimeString()}</Text>
                             </View>
                         </View>
                     </View>
-                    <Entypo style={{alignItems: "center"}}
-                            name="dots-three-vertical" size={24} color="white"/>
+                    <Entypo style={{ alignItems: "center" }}
+                            name="dots-three-vertical" size={24} color="white" />
                 </View>
                 <View style={styles.imagesContainer}>
                     <View style={styles.imageWrapper}>
-                        <Image
-                            source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(isSwapped ? frontPhoto : backPhoto)}` }}
-                            style={styles.capturedImageBig}
-                        />
-                        <Pressable onPress={handleImagePress} style={styles.touchableWrapper}>
+                        <Pressable onPress={handleBiggerImagePress}>
                             <Image
-                                source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(isSwapped ? backPhoto : frontPhoto)}` }}
-                                style={styles.capturedImageSmall}
+                                source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(isSwapped ? frontPhoto : backPhoto)}` }}
+                                style={styles.capturedImageBig}
                             />
+                            <Pressable onPress={handleSmallerImagePress} style={styles.touchableWrapper}>
+                                <Image
+                                    source={{ uri: `data:image/jpeg;base64,${uint8ArrayToBase64(isSwapped ? backPhoto : frontPhoto)}` }}
+                                    style={styles.capturedImageSmall}
+                                />
+                            </Pressable>
                         </Pressable>
-                        {//an absolute comment icon and under that a dotted circle with a + icon inside}
+                        <View style={{ position: "absolute", bottom: 25, right: 20 }}>
+                            {!showReactions && (
+                                <>
+                                    <MaterialCommunityIcons style={{ marginVertical: 20 }} name="comment" size={28} color="white" />
+                                    <AntDesign name="smile-circle" size={24} color="white" onPress={handleSmilePress} />
+                                </>
+                            )}
+                        </View>
+                        <View style={{ position: "absolute", bottom: 25}}>
+                            {showReactions && (
+                                <View style={styles.reactionsContainer}>
+                                    <AntDesign name="like1" size={24} color="white" style={styles.reactionIcon} />
+                                    <AntDesign name="heart" size={24} color="red" style={styles.reactionIcon} />
+                                    <AntDesign name="star" size={24} color="yellow" style={styles.reactionIcon} />
+                                    <AntDesign name="like1" size={24} color="white" style={styles.reactionIcon} />
+                                    <AntDesign name="heart" size={24} color="red" style={styles.reactionIcon} />
+                                    <AntDesign name="star" size={24} color="yellow" style={styles.reactionIcon} />
+                                </View>
+                            )}
+                        </View>
+                        {
+                            !myBeRealIsTaken && (
+                                <>
+                                    <BlurView intensity={50} experimentalBlurMethod={"dimezisBlurView"}
+                                              style={styles.blurOverlay} />
+                                    <Pressable style={styles.captureButton} onPress={switchToCameraScreen}>
+                                        <Text style={{ color: "white" }}>Take a BeReal</Text>
+                                    </Pressable>
+                                </>
+                            )
                         }
                     </View>
-                    <View style={{position: "absolute", bottom: 0, right: 0, marginRight: 20, marginBottom: 25}}>
-                        <MaterialCommunityIcons style={{marginVertical:20}} name="comment" size={28} color="white" />
-                        <AntDesign name="smile-circle" size={24} color="white" />
+                    <View style={{ flexDirection: "row", height: 40, marginHorizontal: 10, alignItems: "center" }}>
+                        <Image
+                            source={require('@/assets/images/icon.png')}
+                            style={{ width: 30, height: 30, borderRadius: 15, marginHorizontal: 10, marginVertical: 5 }}
+                        />
+                        <Text style={{ color: "grey", lineHeight: 40 }}>Add a comment...</Text>
                     </View>
-                    {
-                        !myBeRealIsTaken && (
-                            <>
-                                <BlurView intensity={50} experimentalBlurMethod={"dimezisBlurView"}
-                                          style={styles.blurOverlay}/>
-                                <Pressable style={styles.captureButton} onPress={switchToCameraScreen}>
-                                    <Text style={{color: "white"}}>Take a BeReal</Text>
-                                </Pressable>
-                            </>
-                        )
-                    }
                 </View>
-                <View style={{flexDirection: "row", height: 40, marginHorizontal: 10, alignItems: "center"}}>
-                    <Image
-                        source={require('@/assets/images/icon.png')}
-                        style={{width: 30, height: 30, borderRadius: 15, marginHorizontal: 10, marginVertical: 5}}
-                    />
-                    <Text style={{color: "grey", lineHeight: 40}}>Add a comment...</Text>
-                </View>
-
             </View>
         );
-    }
+    };
 
     const MyPost = ({beRealId, frontPhoto, backPhoto, user, location, dateCreated}: BeReal) => {
         return (
@@ -363,5 +388,15 @@ const styles = StyleSheet.create({
     imageWrapper: {
         width: '100%',
         alignItems: 'center',
+    },
+    reactionsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: "100%",
+        left: 15 // todo malfunction
+    },
+    reactionIcon: {
+        margin: "auto",
+        width: "15%"
     },
 });
